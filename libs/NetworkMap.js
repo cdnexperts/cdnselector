@@ -5,7 +5,7 @@ var iptrie = require('iptrie'),
     url = require('url'),
     errorlog = require('winston');
 
-
+//TODO make it so that this feeds data into CouchDB
 function NetworkMap(altoServiceUrl, refreshInterval, ignorePids, networkMapId) {
     var self = this,
         defaultRefreshInterval = 3600,
@@ -219,6 +219,7 @@ proto.refresh = function (callback) {
     this.fetchNetworkMap(this.altoServiceUrl, callback);
 };
 
+// @deprecated
 proto.addressIsOnNet = function (ipAddress) {
     if (!this.ipLookup) {
         errorlog.warn('Network address lookup made before the network map has loaded');

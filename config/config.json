@@ -9,7 +9,7 @@
         "altoNetworkMapId": "default-network-map",
 
         "logger": {
-            "level": "info",
+            "level": "debug",
             "accessLogRotationIntervalSeconds": 3600
         }
     }

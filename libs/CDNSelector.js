@@ -1,10 +1,10 @@
 /*jslint node: true */
 "use strict";
 
-function CDNSelector(distribs, cdns, networkMap) {
+function CDNSelector(distribs, cdns, operatorNetworks) {
     this.distribs = distribs;
     this.cdns = cdns;
-    this.networkMap = networkMap;
+    this.operatorNetworks = operatorNetworks;
 }
 
 var proto = CDNSelector.prototype;
@@ -16,7 +16,7 @@ proto.selectNetworks = function (clientIp, hostname) {
 
 
     // Determine whether the client is On-net
-    var clientIsOnNet = this.networkMap.addressIsOnNet(clientIp);;
+    var clientIsOnNet = this.operatorNetworks.addressIsOnNet(clientIp);;
 
     // Lookup the configuration for this hostname
     var distrib = self.distribs.getByHostname(hostname);

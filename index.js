@@ -9,11 +9,11 @@ global.appVersionNum = 2;
 // Dependencies
 var HttpServer = require('./libs/servers/HttpServer'),
     CDNSelector = require('./libs/CDNSelector'),
-    NetworkMap = require('./libs/NetworkMap'),
     conf = require('./config'),
     database = require('./libs/database'),
     Distributions = require('./libs/dao/Distributions'),
     CDNs = require('./libs/dao/CDNs'),
+    OperatorNetworks = require('./libs/dao/OperatorNetworks'),
     cluster = require('cluster'),
     net = require('net'),
     async = require('async'),
@@ -53,14 +53,9 @@ function errorExit(err) {
         distribs,
         cdns,
         cdnSelector,
-        networkMap,
+        operatorNetworks,
         db,
-        httpServer,
-        networkMap = new NetworkMap(
-                    conf.get('vxcdns:altoServiceUrl'),
-                    conf.get('vxcdns:altoRefreshIntervalSeconds'),
-                    conf.get('vxcdns:altoIgnorePids'),
-                    conf.get('vxcdns:altoNetworkMapId'));
+        httpServer;
 
 
     // Startup checks and pre-loading data
@@ -85,10 +80,6 @@ function errorExit(err) {
                 // Check that we can connect to the database, and
                 // create the database if necessary
                 database.getDatabase(conf.get('vxcdns:dbHost'), callback);
-            },
-            function (callback) {
-                // Calling this here just to see if we can connect.
-                networkMap.refresh(callback);
             }
 
         ], function (err, results) {
@@ -130,12 +121,14 @@ function errorExit(err) {
                 cdns = new CDNs(db, distribs);
                 cdns.load(callback);
             },
-            function getNetworkMap (callback) {
-                networkMap.startMonitoring(callback);
+            function loadOperatorNetworks (callback) {
+                // Pre-load all Operator network config
+                operatorNetworks = new OperatorNetworks(db);
+                operatorNetworks.load(callback);
             }
         ], function (err, results) {
             if (!err) {
-                cdnSelector = new CDNSelector(distribs, cdns, networkMap);
+                cdnSelector = new CDNSelector(distribs, cdns, operatorNetworks);
 
                 httpServer = new HttpServer(port, cdnSelector, loggers.accesslog);
                 httpServer.on('ready', function () {
