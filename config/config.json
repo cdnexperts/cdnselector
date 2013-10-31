@@ -1,0 +1,16 @@
+{
+    "vxcdns": {
+        "serverPort": 8888,
+        "dbHost": "localhost:5984",
+
+        "altoServiceUrl": "http://demo.cdnexperts.net/demo/cdns/alto/directory.altod",
+        "altoRefreshIntervalSeconds": 60,
+        "altoIgnorePids": ["ignore", "offnet", "PID3"],
+        "altoNetworkMapId": "default-network-map",
+
+        "logger": {
+            "level": "info",
+            "accessLogRotationIntervalSeconds": 3600
+        }
+    }
+}

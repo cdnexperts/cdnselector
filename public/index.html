@@ -1,0 +1,275 @@
+
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>CDN Selector Admin Console</title>
+        <!-- Bootstrap -->
+        <link href="vendors/jquery-ui.css" rel="stylesheet" media="screen"/>
+        <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+        <link href="bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet" media="screen">
+        <link href="assets/styles.css" rel="stylesheet" media="screen">
+        <link href="vendors/DT_bootstrap.css" rel="stylesheet" media="screen">
+        <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="vendors/flot/excanvas.min.js"></script><![endif]-->
+        <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+        <!--[if lt IE 9]>
+            <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+        <!-- TODO concatenate all these libs into one file to speed up load times-->
+        <!-- Third party dependencies -->
+        <script src="vendors/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+        <script src="vendors/jquery-1.9.1.min.js"></script>
+        <script src="vendors/jquery-ui-1.10.3.js"></script>
+        <script src="vendors/underscore-min.js"></script>
+        <script src="vendors/backbone-min.js"></script>
+        <script src="vendors/jquery.couchdb.js"></script>
+        <script src="bootstrap/js/bootstrap.min.js"></script>
+        <script src="vendors/datatables/js/jquery.dataTables.min.js"></script>
+        <script src="vendors/DT_bootstrap.js"></script>
+
+        <!-- our code -->
+        <script src="assets/CdnModel.js"></script>
+        <script src="assets/DistributionModel.js"></script>
+        <script src="assets/DistributionsView.js"></script>
+        <script src="assets/DistributionFormView.js"></script>
+        <script src="assets/DistributionsTableView.js"></script>
+        <script src="assets/DistributionsApp.js"></script>
+
+    </head>
+
+    <body>
+        <div class="navbar navbar-fixed-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse"> <span class="icon-bar"></span>
+                     <span class="icon-bar"></span>
+                     <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="#">CDN Selector</a>
+                    <div class="nav-collapse collapse">
+
+                        <ul class="nav">
+                            <li class="active">
+                                <a href="#">Dashboard</a>
+                            </li>
+
+                        </ul>
+                    </div>
+                    <!--/.nav-collapse -->
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span3" id="sidebar">
+                    <ul class="nav nav-list bs-docs-sidenav nav-collapse collapse">
+                        <li>
+                            <a href="index.html"><i class="icon-chevron-right"></i> Distributions</a>
+                        </li>
+                        <li>
+                            <a href="cdns.html"><i class="icon-chevron-right"></i> CDN Config</a>
+                        </li>
+                    </ul>
+                </div>
+                <!--/span-->
+                <div class="span9" id="content">
+                     <div class="row-fluid">
+                        <div id="successBox" class="alert alert-success hide">
+                            <button type="button" class="close" data-dismiss="alert">&times;</button>
+                            <h4>Success</h4>
+                            <p>The operation completed successfully</p>
+                        </div>
+                      <div id="errorBox" class="alert alert-error alert-block hide">
+                        <a class="close" data-dismiss="alert" href="#">&times;</a>
+                        <h4 class="alert-heading">Error!</h4>
+                        <p>An unknown error occured.</p>
+                      </div>
+                        <!-- block -->
+                        <div class="block" id="distributionsBlock">
+                            <div class="navbar navbar-inner block-header">
+                                <div class="muted pull-left">Distributions</div>
+                            </div>
+                            <div class="block-content collapse in">
+                                <a href="#distributionForm" class="btn btn-primary" id="btnCreateDistribution">Create Distribution</a>
+                            </div>
+                            <div class="block-content collapse in" id="distributionsTabBlock">
+                                <div class="span12" >
+  									              <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="distributionsTab">
+                                        <thead>
+                                            <tr>
+                                                <th></th>
+                                                <th></th>
+                                                <th></th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+									                 </table>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /block -->
+                        <div id="distributionFormBlock" class="block">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <footer>
+            </footer>
+        </div>
+        <!--/.fluid-container-->
+        <script type="text/template" id="tplDistributionsForm">
+          <div class="navbar navbar-inner block-header">
+              <div class="muted pull-left"><%= typeof _id === 'undefined' ? 'Create' : 'Edit' %> Distribution</div>
+          </div>
+          <div class="block-content collapse in">
+              <form class="form-horizontal" id="distributionForm">
+                  <fieldset>
+                      <p>Create a distribution to instruct the CDN selector to handle requests for a new hostname and direct them to a suitable CDN.</p>
+
+                      <div class="control-group">
+                            <label class="control-label" for="name">Name</label>
+                            <div class="controls">
+                              <input class="input-xlarge focused" id="name" type="text" placeholder="New Distribution" value="<%= name %>"/>
+                              <p class="help-block">a unique and easily recognisable name for this distribution</p>
+                            </div>
+                      </div>
+
+
+                      <div class="control-group">
+                        <label class="control-label" for="hostnames">Hostnames</label>
+                        <div class="controls">
+                          <textarea id="hostnames" class="input-xlarge textarea" placeholder="www.example.com" style="width: 250px; height: 50px"><% _.each(hostnames, function(hostname) { %><%= hostname %><%='\n' %><%}); %></textarea>
+                          <p class="help-block">the hostname that will be used for this distribution. If you have multiple hostnames, put each on a new line.</p>
+                        </div>
+                      </div>
+
+                      <h5>Token Authentication</h5>
+                      <p>If you use token authentication with this distribution you must answer the following questions. The values should match exactly the corresponding configuration in the Velocix CDN.</p>
+
+                      <div class="control-group">
+                            <label class="control-label" for="authParam">Auth Parameter name</label>
+                            <div class="controls">
+                              <input class="input-xlarge focused" id="authParam" type="text" placeholder="authtoken" value="<%= authParam %>"/>
+                              <p class="help-block">the URL querystring parameter that will contain a Velocix HMAC token</p>
+                            </div>
+                      </div>
+                       <div class="control-group">
+                            <label class="control-label" for="authSecret1">Secret 1</label>
+                            <div class="controls">
+                              <input class="input-xlarge focused" id="authSecret1" type="text" placeholder="secret1" value="<%= authSecrets[0] %>"/>
+                            </div>
+                      </div>
+                       <div class="control-group">
+                            <label class="control-label" for="authSecret2">Secret 2</label>
+                            <div class="controls">
+                              <input class="input-xlarge focused" id="authSecret2" type="text" placeholder="secret2" value="<%= authSecrets[1] %>"/>
+                              <p class="help-block">the authorization secrets used to validate tokens, as configured in the Velocix Console.</p>
+                            </div>
+                      </div>
+
+                      <h5>CDN Provider Order</h5>
+                      <p class="alert alert-info"><i class="icon-arrow-left"></i>Drag the tabs into the required order of priority<i class="icon-arrow-right"></i></em></p>
+
+                      <div class="control-group">
+                          <div id="tabs">
+                            <ul class="tabHeads">
+                              <li><a href="#velocix" id="velocixTabHead">Velocix</a></li>
+                              <li><a href="#amazon" id="amazonTabHead">Amazon Cloudfront</a></li>
+                              <li><a href="#generic" id="genericTabHead">Generic</a></li>
+                            </ul>
+
+                              <% _.each(providers, function(provider, index, list) {
+
+                                    if (provider.id === 'velocix') { %>
+                                      <div id="velocix">
+                                        <div class="control-group">
+                                          <label class="control-label" for="velocixActive">Enabled</label>
+                                          <div class="controls">
+                                            <label class="uniform">
+                                              <input class="uniform_on" type="checkbox" id="active" value="velocixActive" <%= provider.active ? 'checked' : '' %>>
+                                            </label>
+                                            <p>Server-side cache selection will be used to determine how to route requests to your Velocix CDN.</p>
+                                            <p>Any authentication tokens will be passed-thru for validation by the Velocix CDN.</p>
+                                            <p>This CDN is configured to only accept requests from On-Net clients.</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    <% } else if (provider.id === 'amazon') { %>
+                                      <div id="amazon">
+                                        <div class="control-group">
+                                          <label class="control-label" for="amazonEnabled">Enabled</label>
+                                          <div class="controls">
+                                            <label class="uniform">
+                                              <input class="uniform_on" type="checkbox" id="active" value="amazonActive" <%= provider.active ? 'checked' : '' %>>
+                                            </label>
+                                          </div>
+                                        </div>
+                                        <div class="control-group">
+                                              <label class="control-label" for="hostname">Cloudfront Hostname</label>
+                                              <div class="controls">
+                                                <input class="input-xlarge focused" placeholder="e.g. d2tihyvz36rus8.cloudfront.net" id="hostname" type="text" value="<%= provider.hostname %>"/>
+                                                <p class="help-block">the hostname of the CloudFront Distribution (without http://). This can be retrieved from the Amazon WebServices Console.</p>
+                                              </div>
+                                        </div>
+
+                                        <h5>Signed URL generation</h5>
+                                        <p>Amazon Cloudfront supports signed URLs, which are similar to Velocix Tokens.</p>
+                                        <p>CDN Selector will convert any requests containing Velocix Tokens into Amazon Signed URLs if you provide the following information.</p>
+                                        <div class="control-group">
+                                              <label class="control-label" for="awsCfKeyPairId">Cloudfront Key Pair ID</label>
+                                              <div class="controls">
+                                                <input class="input-xlarge focused" id="awsCfKeyPairId" type="text" placeholder="APKAIRTLD3CK3QO4UAJA" value="<%= provider.signedUrl ? provider.signedUrl.awsCfKeyPairId : '' %>"/>
+                                                <p class="help-block">Key Pairs can be generated using the Amazon WebServices console.</p>
+                                              </div>
+                                        </div>
+                                        <div class="control-group">
+                                          <label class="control-label" for="awsCfPrivateKey">Private Key</label>
+                                          <div class="controls">
+                                            <textarea id="awsCfPrivateKey" class="input-small textarea" placeholder="-----BEGIN RSA PRIVATE KEY-----MIIEpAIBAAKCAQEAjejN1DZG/dwXte5bcKGE9VsOPgr9k9A1vdQUJPQXdgSA0jcpi/kVS3pBrjOIni1j22A9epklQVoMlXZi/sM+beBm8RUxfjBws7PchEx8khd36WONLlZRDAUA6a7YQ2OwadpBegGdIs..." style="width: 450px; height: 150px"><%= provider.signedUrl ? provider.signedUrl.awsCfPrivateKey : '' %></textarea>
+                                            <p class="help-block">the private key used to generate Signed URLs (copy and paste from the .pem file downloaded from the Amazon WebServices console).</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    <%} else if (provider.id === 'generic') { %>
+                                      <div id="generic">
+                                        <div class="control-group">
+                                          <label class="control-label" for="genericActive">Enabled</label>
+                                          <div class="controls">
+                                            <label class="uniform">
+                                              <input class="uniform_on" type="checkbox" id="active" value="genericActive" <%= provider.active ? 'checked' : '' %>>
+                                            </label>
+                                          </div>
+                                        </div>
+                                        <div class="control-group">
+                                                <label class="control-label" for="hostname">Hostname</label>
+                                                <div class="controls">
+                                                  <input class="input-xlarge focused" id="hostname" type="text" value="<%= provider.hostname %>"/>
+                                                  <p class="help-block">the hostname that requests should be directed to on this CDN</p>
+                                                </div>
+                                                <h5>About Generic CDN support</h5>
+                                                <p>The Generic CDN configuration can be used to direct client requests to almost any CDN. It does not support authentication features such as tokens.</p>
+                                                <p>Example uses are:</p>
+                                                <ul>
+                                                  <li>Rackspace Cloudfiles (powered by Akamai) - simply provide your container&quot;s 'Public CDN' link (HTTP) from the Rackspace console.</li>
+                                                  <li>Other CDNs</li>
+                                                  <li>Direct to your Origin - as a backup option you might want to allow requests to be sent directly to your Origin servers.</li>
+                                                </ul>
+                                          </div>
+                                        </div>
+                                    <%}
+                              });%>
+                          </div>
+                      </div>
+
+                      <div class="form-actions">
+                        <button class="btn btn-primary" id="btnSaveDistribution">Save Changes</button>
+                      </div>
+                  </fieldset>
+              </form>
+          </div>
+        </script>
+    </body>
+</html>

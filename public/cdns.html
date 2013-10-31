@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>CDN Selector Admin Console</title>
+        <!-- Bootstrap -->
+        <link href="vendors/jquery-ui.css" rel="stylesheet" media="screen"/>
+        <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+        <link href="bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet" media="screen">
+        <link href="assets/styles.css" rel="stylesheet" media="screen">
+        <link href="vendors/DT_bootstrap.css" rel="stylesheet" media="screen">
+        <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="vendors/flot/excanvas.min.js"></script><![endif]-->
+        <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+        <!--[if lt IE 9]>
+            <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+        <!-- TODO concatenate all these libs into one file to speed up load times-->
+        <!-- Third party dependencies -->
+        <script src="vendors/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+        <script src="vendors/jquery-1.9.1.min.js"></script>
+        <script src="vendors/jquery-ui-1.10.3.js"></script>
+        <script src="vendors/underscore-min.js"></script>
+        <script src="vendors/backbone-min.js"></script>
+        <script src="vendors/jquery.couchdb.js"></script>
+        <script src="bootstrap/js/bootstrap.min.js"></script>
+        <script src="vendors/datatables/js/jquery.dataTables.min.js"></script>
+        <script src="vendors/DT_bootstrap.js"></script>
+
+        <!-- our code -->
+        <script src="assets/CdnModel.js"></script>
+        <script src="assets/CdnConfigView.js"></script>
+        <script src="assets/CdnConfigApp.js"></script>
+
+    </head>
+
+    <body>
+        <div class="navbar navbar-fixed-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse"> <span class="icon-bar"></span>
+                     <span class="icon-bar"></span>
+                     <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="#">CDN Selector</a>
+                    <div class="nav-collapse collapse">
+
+                        <ul class="nav">
+                            <li class="active">
+                                <a href="#">Dashboard</a>
+                            </li>
+
+                        </ul>
+                    </div>
+                    <!--/.nav-collapse -->
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span3" id="sidebar">
+                    <ul class="nav nav-list bs-docs-sidenav nav-collapse collapse">
+                        <li>
+                            <a href="index.html"><i class="icon-chevron-right"></i> Distributions</a>
+                        </li>
+                        <li>
+                            <a href="cdns.html"><i class="icon-chevron-right"></i> CDN Config</a>
+                        </li>
+                    </ul>
+                </div>
+                <!--/span-->
+                <div class="span9" id="content">
+                     <div class="row-fluid">
+                        <div id="successBox" class="alert alert-success hide">
+                            <button type="button" class="close" data-dismiss="alert">&times;</button>
+                            <h4>Success</h4>
+                            <p>The operation completed successfully</p>
+                        </div>
+                      <div id="errorBox" class="alert alert-error alert-block hide">
+                        <a class="close" data-dismiss="alert" href="#">&times;</a>
+                        <h4 class="alert-heading">Error!</h4>
+                        <p>An unknown error occured.</p>
+                      </div>
+                        <!-- block -->
+                        <div class="block" id="distributionsBlock">
+                            <div class="navbar navbar-inner block-header">
+                                <div class="muted pull-left">Velocix Configuration</div>
+                            </div>
+                            <div class="block-content collapse in" id="velocixFormBlock">
+                            </div>
+                        </div>
+                        <!-- /block -->
+
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <footer>
+            </footer>
+        </div>
+        <!--/.fluid-container-->
+        <script type="text/template" id="tplVelocixForm">
+              <form class="form-horizontal" id="velocixForm">
+                  <fieldset>
+                      <div class="control-group">
+                            <label class="control-label" for="sscsUrl">Cache selection API URL (SSCSv2)</label>
+                            <div class="controls">
+                              <input class="input-xlarge focused" id="sscsUrl" type="text" placeholder="http://routing.velocix.com:8003/sscsv2" value="<%= sscsUrl %>"/>
+                              <p class="help-block">the URL of the Server Side Cache Selection (SSCSv2) on your Velocix CDN.</p>
+                            </div>
+                      </div>
+                      <div class="form-actions">
+                        <button class="btn btn-primary" id="btnSaveCdn">Save Changes</button>
+                      </div>
+                  </fieldset>
+              </form>
+        </script>
+    </body>
+</html>

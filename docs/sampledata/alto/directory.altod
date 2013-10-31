@@ -1,0 +1,66 @@
+{
+    "meta": {
+        "cost-types": {
+            "num-routing": {
+                "cost-mode": "numerical",
+                "cost-metric": "routingcost",
+                "description": "My default"
+            },
+            "num-hop": {
+                "cost-mode": "numerical",
+                "cost-metric": "hopcount"
+            },
+            "ord-routing": {
+                "cost-mode": "ordinal",
+                "cost-metric": "routingcost"
+            },
+            "ord-hop": {
+                "cost-mode": "ordinal",
+                "cost-metric": "hopcount"
+            }
+        }
+    },
+    "resources": [{
+        "id": "default-network-map",
+        "uri": "networkmap.alton",
+        "media-type": "application/alto-networkmap+json"
+    }, {
+        "id": "numerical-routing-cost-map",
+        "uri": "http://www.ecreationmedia.tv/demo/cdns/alto/costmap/num/routingcost",
+        "media-type": "application/alto-costmap+json",
+        "capabilities": {
+            "cost-type-names": ["num-routing"]
+        },
+        "uses": ["default-network-map"]
+    }, {
+        "id": "numerical-hopcount-cost-map",
+        "uri": "http://www.ecreationmedia.tv/demo/cdns/alto/costmap/num/hopcount",
+        "media-type": "application/alto-costmap+json",
+        "capabilities": {
+            "cost-type-names": ["num-hop"]
+        },
+        "uses": ["default-network-map"]
+    }, {
+        "id": "custom-maps-resources",
+        "uri": "http://www.ecreationmedia.tv/demo/cdns/alto/maps",
+        "media-type": "application/alto-directory+json"
+    }, {
+        "id": "endpoint-property",
+        "uri": "http://www.ecreationmedia.tv/demo/cdns/alto/endpointprop/lookup",
+        "media-type": "application/alto-endpointprop+json",
+        "accepts": "application/alto-endpointpropparams+json",
+        "capabilities": {
+            "prop-types": ["pid"]
+        },
+        "uses": ["default-network-map"]
+    }, {
+        "id": "endpoint-cost",
+        "uri": "http:///endpointcost/lookup",
+        "media-type": "application/alto-endpointcost+json",
+        "accepts": "application/alto-endpointcostparams+json",
+        "capabilities": {
+            "cost-constraints": true,
+            "cost-type-names": ["num-routing", "num-hop", "ord-routing", "ord-hop"]
+        }
+    }]
+}
