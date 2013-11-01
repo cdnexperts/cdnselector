@@ -53,6 +53,7 @@ proto.load = function (callback) {
 };
 
 
+
 proto.addressIsOnNet = function (ipAddress) {
     if (!this.ipRangeList) {
         errorlog.warn('Network address lookup made before the network map has loaded');

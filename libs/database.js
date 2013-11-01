@@ -174,9 +174,9 @@ function createDatabase(nano, dbName, callback) {
 
 
 module.exports = {
-    getDatabase: function (dbHost, callback) {
+    getDatabase: function (dbUrl, callback) {
         var dbName = 'cdns',
-            nano = require('nano')('http://' + dbHost);
+            nano = require('nano')(dbUrl);
 
         createDatabase(nano, dbName, function (err) {
             if (err) {

@@ -4,23 +4,21 @@
 // Initialise logging
 // There are 2 loggers - an error log using Winston, and a more
 // specialised request logger to generate the W3C-based log format
-var config = require('nconf'),
+var localConfig = require('./lib/localConfig'),
     winston = require('winston'),
-    logDir = process.env.CDNS_LOG_DIR || './log',
     RequestLogger = require('./libs/RequestLogger');
 
 
 // Error log
 winston.remove(winston.transports.Console);
 winston.add(winston.transports.Console, {
-    level: config.get('vxcdns:logger:level'),
+    level: localConfig.logLevel,
     timestamp: true
 });
 
 
 // Access Log
-var requestLogger = new RequestLogger(
-        config.get('vxcdns:logger:accessLogRotationIntervalSeconds'), logDir);
+var requestLogger = new RequestLogger(localConfig.logRotationInterval, localConfig.logDir);
 
 // Complete the log file on close of the application
 process.on('exit', function () {
