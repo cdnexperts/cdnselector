@@ -10,7 +10,7 @@ var HttpServer = require('./libs/servers/HttpServer'),
 
     localConfig = require('./libs/localConfig'),
     database = require('./libs/database'),
-    loggers = require('./logger')
+    loggers = require('./logger'),
 
     cluster = require('cluster'),
     net = require('net'),
@@ -51,7 +51,7 @@ var distribs,
 
 // Startup checks and pre-loading data
 if (cluster.isMaster) {
-    loggers.errorlog.info('Starting cluster of ' + numCPUs + ' child processes.');
+
 
     // Master process
     async.series([
@@ -77,8 +77,12 @@ if (cluster.isMaster) {
             errorExit(err);
         } else {
             // Launch worker processes
-            var i;
-            for (i = 0; i < os.cpus().length; i += 1) {
+            var i,
+                numCPUs = os.cpus().length;
+
+            loggers.errorlog.info('Starting cluster of ' + numCPUs + ' child processes.');
+
+            for (i = 0; i < numCPUs; i += 1) {
                 cluster.fork();
             }
 
@@ -120,7 +124,7 @@ if (cluster.isMaster) {
         if (!err) {
             cdnSelector = new CDNSelector(distribs, cdns, operatorNetworks);
 
-            httpServer = new HttpServer(port, cdnSelector, loggers.accesslog);
+            httpServer = new HttpServer(localConfig.port, cdnSelector, loggers.accesslog);
             httpServer.on('ready', function () {
                 loggers.errorlog.info('Worker process ' + process.pid + ' started');
             });

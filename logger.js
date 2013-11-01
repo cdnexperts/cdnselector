@@ -4,7 +4,7 @@
 // Initialise logging
 // There are 2 loggers - an error log using Winston, and a more
 // specialised request logger to generate the W3C-based log format
-var localConfig = require('./lib/localConfig'),
+var localConfig = require('./libs/localConfig'),
     winston = require('winston'),
     RequestLogger = require('./libs/RequestLogger');
 
