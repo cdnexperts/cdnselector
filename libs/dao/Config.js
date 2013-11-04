@@ -2,9 +2,33 @@
 "use strict";
 var errorlog = require('winston'),
     util = require('util'),
-    EventEmitter = require('events').EventEmitter;
+    BaseDao = require('./BaseDao.js');
+
+var dbDocs = {
+    "_design/config": {
+       "language": "javascript",
+       "filters": {
+            "all": function (doc, req) {
+                return (doc._id === 'cdns:config');
+            }
+       }
+    },
+    "cdns:config": {
+       "alto": {
+           "altoServiceUrl": "http://demo.cdnexperts.net/demo/cdns/alto/directory.altod",
+           "refreshInterval": 60,
+           "ignorePids": [
+               "ignore",
+               "offnet",
+               "PID3"
+           ],
+           "networkMapId": "default-network-map"
+       }
+    }
+};
 
 function Config(db) {
+    Config.super_.call(this, db);
     var self = this;
     this.config = {};
 
@@ -12,7 +36,7 @@ function Config(db) {
         db.get('cdns:config', {}, function (err, body) {
             if (!err) {
                 self.config = body;
-                self.emit("configChanged", self.config);
+                self.emit("configLoaded", self.config);
             } else {
                 self.emit("error", new Error('Error from Database while fetching configuration : ' + err));
             }
@@ -33,14 +57,24 @@ function Config(db) {
         feed.follow();
     };
 
-    loadConfig();
-    monitorConfig();
+    // Create the DB docs if necessary, then load the config
+    // and monitor for changes
+    this.createDatabaseDocs(dbDocs, function (err) {
+        if (err) {
+            self.emit('error', new Error('Error whilst creating DB document for Config : ' + err));
+        } else {
+            loadConfig();
+            monitorConfig();
+        }
+    });
 }
 
-util.inherits(Config, EventEmitter);
+util.inherits(Config, BaseDao);
 
 Config.prototype.getVal = function (key) {
     return this.config[key];
 }
 
-module.exports = Config;
+module.exports = function (database) {
+    return new Config(database);
+};

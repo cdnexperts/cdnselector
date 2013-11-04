@@ -3,15 +3,67 @@
 var VelocixCDN = require('../cdn/VelocixCDN'),
     GenericOttCDN = require('../cdn/GenericOttCDN'),
     AmazonCloudfront = require('../cdn/AmazonCloudfront'),
-    errorlog = require('winston');
+    errorlog = require('winston'),
+    BaseDao = require('./BaseDao.js'),
+    util = require('util');
+
+var dbDocs = dbDocs = {
+    "_design/cdns": {
+        "views": {
+            "all": {
+                "map": function(doc) {
+                    if (doc.type === 'cdn') {
+                        emit(doc._id, doc);
+                    }
+                }
+            }
+        },
+        "filters": {
+            "all": function(doc, req) {
+                return (doc.type == 'cdn' || doc._deleted);
+            }
+        }
+    },
+    "cdns:cdn:velocix": {
+        "name": "Velocix",
+        "driver": "cdns:cdn:velocix",
+        "active": true,
+        "allowOffNetClients": false,
+        "type": "cdn",
+        "defaultOrder": 0,
+        "lookupService": {
+            "proto": "sscsv2",
+            "host": "routing.zzz83s2.pub",
+            "port": 8003,
+            "path": "/sscsv2"
+        }
+    },
+    "cdns:cdn:amazon": {
+        "name": "Amazon Cloudfront",
+        "driver": "cdns:cdn:amazon",
+        "allowOffNetClients": true,
+        "type": "cdn",
+        "defaultOrder": 1,
+        "active": true
+    },
+    "cdns:cdn:generic": {
+        "name": "Generic",
+        "driver": "cdns:cdn:generic",
+        "allowOffNetClients": true,
+        "type": "cdn",
+        "defaultOrder": 2,
+        "active": true
+    }
+};
 
 function CDNs(db, distribs) {
+    CDNs.super_.call(this, db);
 
     var self = this,
         cdnDrivers = {
-            velocix: VelocixCDN,
-            generic: GenericOttCDN,
-            amazon: AmazonCloudfront
+            "cdns:cdn:velocix": VelocixCDN,
+            "cdns:cdn:generic": GenericOttCDN,
+            "cdns:cdn:amazon": AmazonCloudfront
         };
 
     this.cdns = {};
@@ -69,10 +121,21 @@ function CDNs(db, distribs) {
         feed.follow();
     };
 }
+
+util.inherits(CDNs, BaseDao);
 var proto = CDNs.prototype;
 
+
 proto.load = function (callback) {
-    this.loadAllCDNs(callback);
+    var self = this;
+    self.createDatabaseDocs(dbDocs, function (err) {
+        if (err) {
+            errorlog.error("Error whilst creating DB documents for CDNs.", err);
+            callback(err);
+        } else {
+            self.loadAllCDNs(callback);
+        }
+    });
 };
 
 
@@ -80,4 +143,6 @@ proto.getById = function (id) {
     return this.cdns[id];
 };
 
-module.exports = CDNs;
+module.exports = function (database) {
+    return new CDNs(database);
+};

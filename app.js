@@ -2,20 +2,17 @@
 "use strict";
 
 // Dependencies
-var HttpServer = require('./libs/servers/HttpServer'),
-    CDNSelector = require('./libs/CDNSelector'),
-    Distributions = require('./libs/dao/Distributions'),
-    CDNs = require('./libs/dao/CDNs'),
-    OperatorNetworks = require('./libs/dao/OperatorNetworks'),
-
-    localConfig = require('./libs/localConfig'),
-    database = require('./libs/database'),
-    loggers = require('./logger'),
-
-    cluster = require('cluster'),
+var cluster = require('cluster'),
     net = require('net'),
     async = require('async'),
-    os = require('os');
+    os = require('os'),
+
+    localConfig = require('./libs/localConfig'),
+    database = require('./libs/database')(localConfig.dbUrl),
+    loggers = require('./logger'),
+
+    HttpServer = require('./libs/servers/HttpServer'),
+    CDNSelector = require('./libs/CDNSelector');
 
 function checkPort(port, callback) {
     var server = net.createServer(),
@@ -51,8 +48,6 @@ var distribs,
 
 // Startup checks and pre-loading data
 if (cluster.isMaster) {
-
-
     // Master process
     async.series([
         function (callback) {
@@ -69,7 +64,7 @@ if (cluster.isMaster) {
         function (callback) {
             // Check that we can connect to the database, and
             // create the database if necessary
-            database.getDatabase(localConfig.dbUrl, callback);
+            database.connect(callback);
         }
 
     ], function (err, results) {
@@ -96,28 +91,27 @@ if (cluster.isMaster) {
     });
 
 } else {
-
     // Worker process
     async.series([
         function connectToDatabase (callback) {
-            database.getDatabase(localConfig.dbUrl, function (err, database) {
+            database.connect(function (err, database) {
                 db = database;
                 callback(err);
             });
         },
         function loadDistributionConfig (callback) {
             // Pre-load all distribution config
-            distribs = new Distributions(db);
+            distribs = require('./libs/dao/Distributions')(db);
             distribs.load(callback);
         },
         function loadCDNs (callback) {
             // Pre-load all CDN config
-            cdns = new CDNs(db, distribs);
+            cdns = require('./libs/dao/CDNs')(db);
             cdns.load(callback);
         },
         function loadOperatorNetworks (callback) {
             // Pre-load all Operator network config
-            operatorNetworks = new OperatorNetworks(db);
+            operatorNetworks = require('./libs/dao/OperatorNetworks')(db);
             operatorNetworks.load(callback);
         }
     ], function (err, results) {

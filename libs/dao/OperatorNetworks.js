@@ -1,9 +1,34 @@
 /*jslint node: true */
 "use strict";
 var errorlog = require('winston'),
-    iptrie = require('iptrie');
+    iptrie = require('iptrie'),
+    BaseDao = require('./BaseDao.js'),
+    util = require('util');
+
+var dbDocs = {
+    "_design/operatorNetwork": {
+        "language": "javascript",
+        "views": {
+           "ipRangeList": {
+               "map": function(doc) {
+                    if (doc.type === 'operatorNetwork') {
+                        for (var i=0; i < doc.ipRanges.length; i++) {
+                            emit(null, doc.ipRanges[i]);
+                        }
+                    }
+                }
+           }
+        },
+        "filters": {
+           "all": function (doc, req) {
+                return (doc.type == 'operatorNetwork' || doc._deleted);
+            }
+        }
+    }
+};
 
 function OperatorNetworks(db) {
+    OperatorNetworks.super_.call(this, db);
     var self = this;
     this.ipRangeList = new iptrie.IPTrie();
 
@@ -46,13 +71,20 @@ function OperatorNetworks(db) {
         monitorOperatorNetworks();
     };
 }
+util.inherits(OperatorNetworks, BaseDao);
 var proto = OperatorNetworks.prototype;
 
 proto.load = function (callback) {
-    this.loadAndMonitorOperatorNetworks(callback);
+    var self = this;
+    self.createDatabaseDocs(dbDocs, function (err) {
+        if (err) {
+            errorlog.error("Error whilst creating DB documents for OperatorNetworks.", err);
+            callback(err);
+        } else {
+            self.loadAndMonitorOperatorNetworks(callback);
+        }
+    });
 };
-
-
 
 proto.addressIsOnNet = function (ipAddress) {
     if (!this.ipRangeList) {
@@ -63,4 +95,6 @@ proto.addressIsOnNet = function (ipAddress) {
 };
 
 
-module.exports = OperatorNetworks;
+module.exports = function (database) {
+    return new OperatorNetworks(database);
+};

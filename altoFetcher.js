@@ -1,11 +1,11 @@
 /*jslint node: true */
 "use strict";
 
+
 // Dependencies
 var localConfig = require('./libs/localConfig.js'),
     AltoClient = require('./libs/AltoClient.js'),
-    database = require('./libs/database'),
-    Config = require('./libs/dao/Config'),
+    database = require('./libs/database')(localConfig.dbUrl),
     logger = require('winston'),
     async = require('async');
 
@@ -34,14 +34,14 @@ altoClient.on('error', function (err) {
 
 // Load the config from the DB and pass it to the ALTO client.
 // Any future changes should also be passed in.
-database.getDatabase(localConfig.dbUrl, function (err, database) {
-    var configLoader = new Config(database);
+database.connect(function (err, database) {
+    var config = require('./libs/dao/Config')(database);
 
-    configLoader.on('configChanged', function (config) {
-        altoClient.setConfig(config.alto);
+    config.on('configLoaded', function (confParams) {
+        altoClient.setConfig(confParams.alto);
     });
 
-    configLoader.on('error', function (err) {
+    config.on('error', function (err) {
         logger.error("Could not load config for Alto client", err);
     });
 });
