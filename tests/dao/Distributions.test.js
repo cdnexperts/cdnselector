@@ -31,6 +31,9 @@ describe('Distributions', function () {
                     on: function () {},
                     follow: function () {}
                 }
+            },
+            insert: function (doc, docId, callback) {
+                callback();
             }
         };
 
@@ -53,6 +56,9 @@ describe('Distributions', function () {
                     on: function () {},
                     follow: function () {}
                 }
+            },
+            insert: function (doc, docId, callback) {
+                callback();
             }
         };
 

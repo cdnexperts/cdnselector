@@ -24,6 +24,9 @@ var should = require('should'),
                 on: function () {},
                 follow: function () {}
             }
+        },
+        insert: function (doc, docId, callback) {
+            callback();
         }
     };
 

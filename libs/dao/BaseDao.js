@@ -32,4 +32,37 @@ proto.createDatabaseDocs = function (dbDocs, callback) {
     }, callback);
 };
 
+proto.createOrReplaceDocument = function (doc, docId, callback) {
+    var self = this;
+    self.db.get(docId, {}, function (err, body) {
+        // We must load the document to check its latest rev
+        if (err && err.status_code != 404) {
+            errorlog.error('Error getting latest doc revision for ' + docId + " : " + err);
+            callback(err);
+        } else {
+            if (body && body._rev) {
+                doc._rev = body._rev;
+            }
+            self.createDocument(doc, docId, callback);
+        }
+    });
+};
+
+proto.deleteDocument = function (docId, callback) {
+    var self = this;
+    self.db.get(docId, {}, function (err, body) {
+        // We must load the document to check its latest rev
+        if (err && err.status_code != 404) {
+            errorlog.error('Error getting document ' + docId + " for delete : " + err);
+            callback(err);
+        } else {
+            if (body) {
+                self.db.destroy(body._id, body._rev, callback);
+            } else {
+                callback();
+            }
+        }
+    });
+};
+
 module.exports = BaseDao;

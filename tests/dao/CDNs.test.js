@@ -28,6 +28,9 @@ describe('CDNs', function () {
                     on: function () {},
                     follow: function () {}
                 }
+            },
+            insert: function (doc, docId, callback) {
+                callback();
             }
         };
 
@@ -51,6 +54,9 @@ describe('CDNs', function () {
                     on: function () {},
                     follow: function () {}
                 }
+            },
+            insert: function (doc, docId, callback) {
+                callback();
             }
         };
 

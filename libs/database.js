@@ -4,7 +4,7 @@ var url = require('url'),
     errorlog = require('winston');
 
 
-function createDatabase(nano, dbName, callback) {
+function createDatabase (nano, dbName, callback) {
     var db,
         status_code_already_exists = 412; // Means the DB already exists
 
@@ -27,7 +27,7 @@ module.exports = function (dbUrl) {
 
     return {
         connect: function (callback) {
-            var dbName = 'cdns3';
+            var dbName = 'cdns';
 
             if (connection) {
                 process.nextTick(function () {

@@ -12,7 +12,7 @@ var dbDocs = dbDocs = {
         "views": {
             "all": {
                 "map": function(doc) {
-                    if (doc.type === 'cdn') {
+                    if (doc.type === 'cdns:cdn') {
                         emit(doc._id, doc);
                     }
                 }
@@ -20,7 +20,7 @@ var dbDocs = dbDocs = {
         },
         "filters": {
             "all": function(doc, req) {
-                return (doc.type == 'cdn' || doc._deleted);
+                return (doc.type == 'cdns:cdn' || doc._deleted);
             }
         }
     },
@@ -29,7 +29,7 @@ var dbDocs = dbDocs = {
         "driver": "cdns:cdn:velocix",
         "active": true,
         "allowOffNetClients": false,
-        "type": "cdn",
+        "type": "cdns:cdn",
         "defaultOrder": 0,
         "lookupService": {
             "proto": "sscsv2",
@@ -42,7 +42,7 @@ var dbDocs = dbDocs = {
         "name": "Amazon Cloudfront",
         "driver": "cdns:cdn:amazon",
         "allowOffNetClients": true,
-        "type": "cdn",
+        "type": "cdns:cdn",
         "defaultOrder": 1,
         "active": true
     },
@@ -50,7 +50,7 @@ var dbDocs = dbDocs = {
         "name": "Generic",
         "driver": "cdns:cdn:generic",
         "allowOffNetClients": true,
-        "type": "cdn",
+        "type": "cdns:cdn",
         "defaultOrder": 2,
         "active": true
     }

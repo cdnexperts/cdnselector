@@ -11,7 +11,7 @@ var dbDocs = {
         "views": {
            "ipRangeList": {
                "map": function(doc) {
-                    if (doc.type === 'operatorNetwork') {
+                    if (doc.type === 'cdns:operatorNetwork') {
                         for (var i=0; i < doc.ipRanges.length; i++) {
                             emit(null, doc.ipRanges[i]);
                         }
@@ -21,7 +21,7 @@ var dbDocs = {
         },
         "filters": {
            "all": function (doc, req) {
-                return (doc.type == 'operatorNetwork' || doc._deleted);
+                return (doc.type == 'cdns:operatorNetwork' || doc._deleted);
             }
         }
     }
@@ -30,7 +30,9 @@ var dbDocs = {
 function OperatorNetworks(db) {
     OperatorNetworks.super_.call(this, db);
     var self = this;
+
     this.ipRangeList = new iptrie.IPTrie();
+    this.typeString = "cdns:operatorNetwork";
 
     function loadOperatorNetworks(callback) {
         db.view('operatorNetwork', 'ipRangeList', function (err, body) {
@@ -86,6 +88,17 @@ proto.load = function (callback) {
     });
 };
 
+proto.save = function (ipRanges, source, callback) {
+    var self = this,
+        docId = this.typeString + ':' + source,
+        doc = {
+            type: this.typeString,
+            ipRanges: ipRanges,
+            source: source
+        };
+    self.createOrReplaceDocument(doc, docId, callback);
+};
+
 proto.addressIsOnNet = function (ipAddress) {
     if (!this.ipRangeList) {
         errorlog.warn('Network address lookup made before the network map has loaded');
@@ -93,7 +106,6 @@ proto.addressIsOnNet = function (ipAddress) {
     }
     return  this.ipRangeList.find(ipAddress) ? true : false;
 };
-
 
 module.exports = function (database) {
     return new OperatorNetworks(database);

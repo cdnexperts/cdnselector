@@ -9,7 +9,7 @@ var cluster = require('cluster'),
 
     localConfig = require('./libs/localConfig'),
     database = require('./libs/database')(localConfig.dbUrl),
-    loggers = require('./logger'),
+    loggers = require('./libs/logger'),
 
     HttpServer = require('./libs/servers/HttpServer'),
     CDNSelector = require('./libs/CDNSelector');
@@ -84,7 +84,6 @@ if (cluster.isMaster) {
             // When a worker dies, respawn
             cluster.on('exit', function (worker, code, signal) {
                 loggers.errorlog.error('Worker ' + worker.process.pid + ' died');
-
                 cluster.fork();
             });
         }

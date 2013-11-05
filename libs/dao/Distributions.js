@@ -2,22 +2,21 @@
 "use strict";
 var errorlog = require('winston'),
     BaseDao = require('./BaseDao.js'),
-    util = require('util'),
-    async = require('async');
+    util = require('util');
 
 var dbDocs = {
     "_design/distributions": {
         "views": {
             "all": {
                 "map": function(doc) {
-                    if (doc.type === 'distribution') {
+                    if (doc.type === 'cdns:distribution') {
                         emit(doc._id, doc);
                     }
                 }
             },
             "byHostname": {
                 "map": function(doc) {
-                    if (doc.type === 'distribution') {
+                    if (doc.type === 'cdns:distribution') {
                         for (var i = 0; i < doc.hostnames.length; i+=1) {
                             emit(doc.hostnames[i], doc);
                         }
@@ -27,12 +26,12 @@ var dbDocs = {
         },
         "filters": {
             "all": function(doc, req) {
-                return (doc.type == 'distribution' || doc._deleted);
+                return (doc.type == 'cdns:distribution' || doc._deleted);
             }
         }
     },
     "cdns:distribution:sample-distribution": {
-       "type": "distribution",
+       "type": "cdns:distribution",
        "hostnames": [
            "demo.cdnexperts.net",
            "localhost"
