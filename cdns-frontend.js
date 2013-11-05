@@ -92,26 +92,29 @@ if (cluster.isMaster) {
 } else {
     // Worker process
     async.series([
-        function connectToDatabase (callback) {
+        function connectToDatabase (next) {
             database.connect(function (err, database) {
                 db = database;
-                callback(err);
+                next(err);
             });
         },
-        function loadDistributionConfig (callback) {
+        function loadDistributionConfig (next) {
             // Pre-load all distribution config
             distribs = require('./libs/dao/Distributions')(db);
-            distribs.load(callback);
+            distribs.on('updated', next);
+            distribs.on('error', next);
         },
-        function loadCDNs (callback) {
+        function loadCDNs (next) {
             // Pre-load all CDN config
-            cdns = require('./libs/dao/CDNs')(db);
-            cdns.load(callback);
+            cdns = require('./libs/dao/CDNs')(db, distribs);
+            cdns.on('updated', next);
+            cdns.on('error', next);
         },
-        function loadOperatorNetworks (callback) {
+        function loadOperatorNetworks (next) {
             // Pre-load all Operator network config
             operatorNetworks = require('./libs/dao/OperatorNetworks')(db);
-            operatorNetworks.load(callback);
+            operatorNetworks.on('updated', next);
+            operatorNetworks.on('error', next);
         }
     ], function (err, results) {
         if (!err) {

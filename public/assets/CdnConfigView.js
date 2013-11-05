@@ -14,7 +14,7 @@ $(function() {
             this.collection.fetch();
 
             this.collection.on('sync', function() {
-                this.model = this.collection.get('velocix');
+                this.model = this.collection.get('cdns:cdn:velocix');
                 this.model.on('invalid', this.renderError, this);
                 this.render();
             }, this);

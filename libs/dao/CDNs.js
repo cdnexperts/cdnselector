@@ -57,8 +57,7 @@ var dbDocs = dbDocs = {
 };
 
 function CDNs(db, distribs) {
-    CDNs.super_.call(this, db);
-
+    CDNs.super_.call(this, db, 'cdns', 'cdns:cdn');
     var self = this,
         cdnDrivers = {
             "cdns:cdn:velocix": VelocixCDN,
@@ -120,29 +119,30 @@ function CDNs(db, distribs) {
         })
         feed.follow();
     };
+
+    self.createDatabaseDocs(dbDocs, function (err) {
+        if (err) {
+            errorlog.error("Error whilst creating DB documents for CDNs.", err);
+            self.emit('error', err);
+        } else {
+            self.loadAllCDNs(function (err) {
+                if (err) {
+                    self.emit('error', err);
+                } else {
+                    self.emit('updated');
+                }
+            });
+        }
+    });
 }
 
 util.inherits(CDNs, BaseDao);
 var proto = CDNs.prototype;
 
-
-proto.load = function (callback) {
-    var self = this;
-    self.createDatabaseDocs(dbDocs, function (err) {
-        if (err) {
-            errorlog.error("Error whilst creating DB documents for CDNs.", err);
-            callback(err);
-        } else {
-            self.loadAllCDNs(callback);
-        }
-    });
-};
-
-
 proto.getById = function (id) {
     return this.cdns[id];
 };
 
-module.exports = function (database) {
-    return new CDNs(database);
+module.exports = function (database, distribs) {
+    return new CDNs(database, distribs);
 };

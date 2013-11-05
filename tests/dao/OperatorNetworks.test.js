@@ -26,7 +26,7 @@ var should = require('should'),
             }
         },
         insert: function (doc, docId, callback) {
-            callback();
+            process.nextTick(callback);
         }
     };
 
@@ -37,7 +37,7 @@ describe('OperatorNetworks', function () {
     it('should return true for on-net addresses', function (done) {
 
         var opNets = new OperatorNetworks(mockDb);
-        opNets.load(function (err) {
+        opNets.on('updated', function (err) {
             opNets.addressIsOnNet('192.168.0.1').should.equal(true);
             opNets.addressIsOnNet('0.0.0.0').should.equal(true);
             opNets.addressIsOnNet('3.3.4.5').should.equal(true);
@@ -46,7 +46,7 @@ describe('OperatorNetworks', function () {
     });
     it('should return false for off-net addresses', function (done) {
         var opNets = new OperatorNetworks(mockDb);
-        opNets.load(function (err) {
+        opNets.on('updated', function (err) {
             opNets.addressIsOnNet('192.168.0.199').should.equal(false);
             opNets.addressIsOnNet('0.0.0.1').should.equal(false);
             done();

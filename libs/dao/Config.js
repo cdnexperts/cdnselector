@@ -28,7 +28,7 @@ var dbDocs = {
 };
 
 function Config(db) {
-    Config.super_.call(this, db);
+    Config.super_.call(this, db, 'config', 'cdns:config');
     var self = this;
     this.config = {};
 
@@ -36,7 +36,7 @@ function Config(db) {
         db.get('cdns:config', {}, function (err, body) {
             if (!err) {
                 self.config = body;
-                self.emit("configLoaded", self.config);
+                self.emit("updated", self.config);
             } else {
                 self.emit("error", new Error('Error from Database while fetching configuration : ' + err));
             }

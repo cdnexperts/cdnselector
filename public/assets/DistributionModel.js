@@ -3,7 +3,7 @@ $(function() {
 
     app.Distribution = Backbone.Model.extend({
         idAttribute: '_id',
-        url: app.baseUrl,
+        urlRoot: '/cdns/distributions',
 
         defaults: function() {
             return {
@@ -35,12 +35,12 @@ $(function() {
                     activeProviderFound = true;
 
                     // If cloudfront is enabled, a Hostname must be specified
-                    if (provider.id === 'amazon' && _.isEmpty(provider.hostname)) {
+                    if (provider.id === 'cdns:cdn:amazon' && _.isEmpty(provider.hostname)) {
                         err = 'You must specify a hostname for Amazon Cloudfront (or otherwise disable it)';
                     }
 
                     // If generic is enabled, a hostname must be specified
-                    if (provider.id === 'generic' && _.isEmpty(provider.hostname)) {
+                    if (provider.id === 'cdns:cdn:generic' && _.isEmpty(provider.hostname)) {
                         err = 'You must specify a hostname for the Generic CDN (or otherwise disable it)';
                     }
                 }
@@ -56,69 +56,11 @@ $(function() {
                 return "You must enable at least one CDN provider";
             }
 
-        },
-
-        sync: function (method, model, options) {
-
-            if (method === 'create' || method === 'update') {
-                var url = this.url;
-                if (method === 'update') {
-                    url += '/' + model.get('_id');
-                }
-                $.ajax({
-                    url: url,
-                    method: method === 'create' ? 'POST' : 'PUT',
-                    data: JSON.stringify(model),
-                    dataType: "json",
-                    headers: {
-                        'Content-type': 'application/json'
-                    },
-                    success: function (resp) {
-                        options.success(resp);
-                    }
-                });
-            } else if (method === 'delete') {
-                $.ajax({
-                    url: this.url + '/' + model.get('_id') + '?rev=' + model.get('_rev'),
-                    method: 'DELETE',
-                    success: function (resp) {
-                        options.success(resp);
-                    }
-                });
-            }
-        },
-
-        parse: function(response, options) {
-            if (response.id && ! response._id) {
-                response._id = response.id;
-            }
-            if (response.rev && ! response._rev) {
-                response._rev = response.rev;
-            }
-            return response;
         }
     });
 
     app.Distributions = Backbone.Collection.extend({
         model: app.Distribution,
-        url: app.baseUrl + '/_design/distributions/_view/all',
-
-        sync: function (method, model, options) {
-            if (method === 'read') {
-                $.ajax({
-                    url: this.url,
-                    method: 'GET',
-                    dataType: 'json',
-                    success: function(dataObj) {
-                        var resp = [];
-                        for (var i = 0; i < dataObj.rows.length; i++) {
-                            resp.push(dataObj.rows[i].value);
-                        }
-                        options.success(resp);
-                    },
-                    error: options.error
-                });
-            }
-        }
+        url: app.baseUrl + '/distributions'
     });
 });

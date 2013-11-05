@@ -33,16 +33,19 @@ describe('Distributions', function () {
                 }
             },
             insert: function (doc, docId, callback) {
-                callback();
+                process.nextTick(callback);
             }
         };
 
         var distribs = new Distributions(mockDb);
-        distribs.load(function (err) {
+        distribs.on('updated', function (err) {
             distribs.getByHostname('www.testhost.com').id.should.equal('a');
             distribs.getByHostname('cdn.testhost2.com').id.should.equal('b');
             should.not.exist(distribs.getByHostname('missing.testhost2.com'));
             done();
+        });
+        distribs.on('error', function (err) {
+            should.fail('error unexpected');
         });
     });
 
@@ -58,12 +61,16 @@ describe('Distributions', function () {
                 }
             },
             insert: function (doc, docId, callback) {
-                callback();
+                process.nextTick(callback);
             }
         };
 
         var distribs = new Distributions(mockDb);
-        distribs.load(function (err) {
+        distribs.on('updated', function () {
+            should.fail('updated event unexpected');
+        });
+
+        distribs.on('error', function (err) {
             should.exist(err);
             done();
         });

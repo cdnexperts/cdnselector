@@ -3,10 +3,13 @@
 var errorlog = require('winston'),
     async = require('async'),
     util = require('util'),
+    uuid = require('node-uuid'),
     EventEmitter = require('events').EventEmitter;
 
-function BaseDao(db) {
+function BaseDao(db, designDoc, typeString) {
     this.db = db;
+    this.designDoc = designDoc;
+    this.typeString = typeString;
 }
 
 util.inherits(BaseDao, EventEmitter);
@@ -14,6 +17,7 @@ var proto = BaseDao.prototype;
 
 proto.createDocument = function(doc, docId, callback) {
     var status_code_conflict = 409; // Means that the doc already exists
+    doc.type = this.typeString;
 
     this.db.insert(doc, docId, function (err) {
         if (err && err.status_code !== status_code_conflict) {
@@ -48,7 +52,7 @@ proto.createOrReplaceDocument = function (doc, docId, callback) {
     });
 };
 
-proto.deleteDocument = function (docId, callback) {
+proto.del = function (docId, callback) {
     var self = this;
     self.db.get(docId, {}, function (err, body) {
         // We must load the document to check its latest rev
@@ -62,6 +66,39 @@ proto.deleteDocument = function (docId, callback) {
                 callback();
             }
         }
+    });
+};
+
+proto.save = function (doc, callback) {
+    var self = this;
+    // Force the type
+    doc.type = this.typeString;
+
+    if (!doc._id) {
+        doc._id = self.typeString + ':' + uuid.v4();
+    }
+    this.db.insert(doc, doc._id, function (err) {
+        if (err) {
+            callback(err);
+        } else {
+            self.db.get(doc._id, {}, callback);
+        }
+    });
+};
+
+proto.getAll = function (callback) {
+    this.db.view(this.designDoc, 'all', function (err, body) {
+        if (err) {
+            callback(err);
+            return;
+        }
+        var rows = [];
+        if (body.rows) {
+            body.rows.forEach(function (row) {
+                rows.push(row.value);
+            });
+        }
+        callback(null, rows);
     });
 };
 

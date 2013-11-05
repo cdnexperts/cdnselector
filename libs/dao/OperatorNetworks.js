@@ -28,14 +28,14 @@ var dbDocs = {
 };
 
 function OperatorNetworks(db) {
-    OperatorNetworks.super_.call(this, db);
+    OperatorNetworks.super_.call(this, db, 'operatorNetwork', 'cdns:operatorNetwork');
     var self = this;
 
     this.ipRangeList = new iptrie.IPTrie();
     this.typeString = "cdns:operatorNetwork";
 
     function loadOperatorNetworks(callback) {
-        db.view('operatorNetwork', 'ipRangeList', function (err, body) {
+        db.view(self.designDoc, 'ipRangeList', function (err, body) {
             if (!err) {
                 var newIpRangeList = new iptrie.IPTrie();
                 body.rows.forEach(function (doc) {
@@ -52,7 +52,7 @@ function OperatorNetworks(db) {
 
     function monitorOperatorNetworks() {
         // Monitor the database for changes to operator networks
-        var feed = db.follow({since: 'now', filter: 'operatorNetwork/all'});
+        var feed = db.follow({since: 'now', filter: self.designDoc + '/all'});
         feed.on('change', function (change) {
             errorlog.info('Operator Network config was updated: ' + JSON.stringify(change));
             loadOperatorNetworks(function (err) {
@@ -72,21 +72,24 @@ function OperatorNetworks(db) {
         loadOperatorNetworks(callback);
         monitorOperatorNetworks();
     };
-}
-util.inherits(OperatorNetworks, BaseDao);
-var proto = OperatorNetworks.prototype;
 
-proto.load = function (callback) {
-    var self = this;
     self.createDatabaseDocs(dbDocs, function (err) {
         if (err) {
             errorlog.error("Error whilst creating DB documents for OperatorNetworks.", err);
-            callback(err);
+            self.emit('error', err);
         } else {
-            self.loadAndMonitorOperatorNetworks(callback);
+            self.loadAndMonitorOperatorNetworks(function (err) {
+                if (err) {
+                    self.emit('error', err);
+                } else {
+                    self.emit('updated');
+                }
+            });
         }
     });
-};
+}
+util.inherits(OperatorNetworks, BaseDao);
+var proto = OperatorNetworks.prototype;
 
 proto.save = function (ipRanges, source, callback) {
     var self = this,

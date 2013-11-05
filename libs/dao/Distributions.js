@@ -38,11 +38,11 @@ var dbDocs = {
        ],
        "providers": [
            {
-               "id": "velocix",
+               "id": "cdns:cdn:velocix",
                "active": true
            },
            {
-               "id": "amazon",
+               "id": "cdns:cdn:amazon",
                "active": true,
                "hostname": "d1ow0xdh6qh3nq.cloudfront.net",
                "signedUrl": {
@@ -51,7 +51,7 @@ var dbDocs = {
                }
            },
            {
-               "id": "generic",
+               "id": "cdns:cdn:generic",
                "active": true,
                "hostname": "66c31a5db47d96799134-07d0dcfc87cc7f17a619f7b9e538157a.r2.cf3.rackcdn.com"
            }
@@ -66,9 +66,12 @@ var dbDocs = {
 };
 
 function Distributions(db) {
-    Distributions.super_.call(this, db);
+    Distributions.super_.call(this, db, 'distributions', 'cdns:distribution');
     var self = this;
     this.distributions = {};
+    this.db = db;
+    this.designDoc = 'distributions';
+    this.typeId = 'cdns:distribution';
 
     this.loadAllDistributions = function (callback) {
         var feed, i, distrib;
@@ -119,21 +122,26 @@ function Distributions(db) {
         feed.follow();
 
     };
-}
-util.inherits(Distributions, BaseDao);
-var proto = Distributions.prototype;
 
-proto.load = function (callback) {
-    var self = this;
     self.createDatabaseDocs(dbDocs, function (err) {
         if (err) {
             errorlog.error("Error whilst creating DB documents for Distributions.", err);
-            callback(err);
+            self.emit('error', err);
         } else {
-            self.loadAllDistributions(callback);
+            self.loadAllDistributions(function (err) {
+                if (err) {
+                    self.emit('error', err);
+                } else {
+                    self.emit('updated');
+                }
+            });
+
         }
     });
-};
+
+}
+util.inherits(Distributions, BaseDao);
+var proto = Distributions.prototype;
 
 proto.getByHostname = function (hostname) {
     return this.distributions[hostname];

@@ -2,10 +2,7 @@
 /*global describe, it */
 "use strict";
 var should = require('should'),
-    testUtil = require('../TestUtil'),
-    CDNs = require('../../libs/dao/CDNs');
-
-
+    testUtil = require('../TestUtil');
 
 describe('CDNs', function () {
     it('should provide access to all CDNs', function (done) {
@@ -30,18 +27,22 @@ describe('CDNs', function () {
                 }
             },
             insert: function (doc, docId, callback) {
-                callback();
+                process.nextTick(callback);
             }
         };
 
-        var cdns = new CDNs(mockDb);
-        cdns.load(function (err) {
-            should.not.exist(err);
+        var cdns = require('../../libs/dao/CDNs')(mockDb);
+        cdns.on('updated', function () {
             cdns.getById('velocix').toString().should.equal('velocix');
             cdns.getById('akamai').toString().should.equal('akamai');
             should.not.exist(cdns.getById('bogus'));
             done();
         });
+        cdns.on('error', function (err) {
+            should.not.exist(err);
+            should.fail('Error callback unexpected');
+        });
+
     });
 
     it('should handle errors', function (done) {
@@ -56,12 +57,15 @@ describe('CDNs', function () {
                 }
             },
             insert: function (doc, docId, callback) {
-                callback();
+                process.nextTick(callback);
             }
         };
 
-        var cdns = new CDNs(mockDb);
-        cdns.load(function (err) {
+        var cdns = require('../../libs/dao/CDNs')(mockDb);
+        cdns.on('updated', function (err) {
+            should.fail('updated event should not be called');
+        });
+        cdns.on('error', function (err) {
             should.exist(err);
             done();
         });

@@ -17,12 +17,10 @@ $(function() {
         },
 
         render: function() {
-            console.log('render form');
             var templateParams = this.model.toJSON();
 
             // make sure that the model has a provider for every CDN, even if its empty
             this.options.cdnCollection.forEach(function(cdn) {
-                console.log(cdn);
                 var foundProvider = false;
                 templateParams.providers.forEach(function(provider) {
                     if (provider.id === cdn.id) {
@@ -133,9 +131,10 @@ $(function() {
             }
             $('#tabs ul.tabHeads li a').each(function(i, a) {
                 var provider = {};
-                provider.id = a.hash.replace('#', '');
+                var providerElId = a.hash.replace('#', '');
+                provider.id = 'cdns:cdn:' + providerElId;
 
-                var tab = $('#tabs #' + provider.id);
+                var tab = $('#tabs #' + providerElId);
 
                 // Active flag
                 provider.active = $('input[type=checkbox]:checked', tab).length === 1;
@@ -146,7 +145,7 @@ $(function() {
                 }
 
                 // Amazon SignedURL stuff
-                if (provider.id === 'amazon') {
+                if (provider.id === 'cdns:cdn:amazon') {
                     provider.signedUrl = {
                         awsCfKeyPairId: $('input#awsCfKeyPairId', tab).val(),
                         awsCfPrivateKey:  $('#awsCfPrivateKey', tab).val()

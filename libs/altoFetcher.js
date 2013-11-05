@@ -2,34 +2,30 @@
 "use strict";
 
 // Dependencies
-var localConfig = require('./libs/localConfig.js'),
-    AltoClient = require('./libs/AltoClient.js'),
-    database = require('./libs/database')(localConfig.dbUrl),
+var localConfig = require('./localConfig.js'),
+    AltoClient = require('./AltoClient.js'),
+    dbHelper = require('./database')(localConfig.dbUrl),
     logger = require('winston');
 
 
-// Error log
-logger.remove(logger.transports.Console);
-logger.add(logger.transports.Console, {
-    timestamp: true
-});
+
 logger.info("Starting ALTO Fetcher");
 
 // Don't do anything until we know that we can connect to the DB.
-database.connect(function (err, database) {
+dbHelper.connect(function (err, database) {
 
     if (err) {
         logger.error("ALTO fetcher cannot connect to the database.", err);
         return;
     }
 
-    var config = require('./libs/dao/Config')(database),
-        operatorNetworks = require('./libs/dao/OperatorNetworks')(database),
+    var config = require('./dao/Config')(database),
+        operatorNetworks = require('./dao/OperatorNetworks')(database),
         altoClient = new AltoClient();
 
     // Whenever the config loads, notify the ALTO client.
     // This will trigger it to poll immediately.
-    config.on('configLoaded', function (confParams) {
+    config.on('updated', function (confParams) {
         altoClient.setConfig(confParams.alto);
     });
 
@@ -59,3 +55,4 @@ database.connect(function (err, database) {
     });
 });
 
+module.exports = {};

@@ -22,7 +22,6 @@
         <script src="vendors/jquery-ui-1.10.3.js"></script>
         <script src="vendors/underscore-min.js"></script>
         <script src="vendors/backbone-min.js"></script>
-        <script src="vendors/jquery.couchdb.js"></script>
         <script src="bootstrap/js/bootstrap.min.js"></script>
         <script src="vendors/datatables/js/jquery.dataTables.min.js"></script>
         <script src="vendors/DT_bootstrap.js"></script>
@@ -183,7 +182,7 @@
 
                               <% _.each(providers, function(provider, index, list) {
 
-                                    if (provider.id === 'velocix') { %>
+                                    if (provider.id === 'cdns:cdn:velocix') { %>
                                       <div id="velocix">
                                         <div class="control-group">
                                           <label class="control-label" for="velocixActive">Enabled</label>
@@ -197,7 +196,7 @@
                                           </div>
                                         </div>
                                       </div>
-                                    <% } else if (provider.id === 'amazon') { %>
+                                    <% } else if (provider.id === 'cdns:cdn:amazon') { %>
                                       <div id="amazon">
                                         <div class="control-group">
                                           <label class="control-label" for="amazonEnabled">Enabled</label>
@@ -233,7 +232,7 @@
                                           </div>
                                         </div>
                                       </div>
-                                    <%} else if (provider.id === 'generic') { %>
+                                    <%} else if (provider.id === 'cdns:cdn:generic') { %>
                                       <div id="generic">
                                         <div class="control-group">
                                           <label class="control-label" for="genericActive">Enabled</label>

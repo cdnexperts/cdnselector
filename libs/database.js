@@ -1,7 +1,7 @@
 /*jslint node: true */
 "use strict";
 var url = require('url'),
-    errorlog = require('winston');
+    logger = require('winston');
 
 
 function createDatabase (nano, dbName, callback) {
@@ -9,11 +9,12 @@ function createDatabase (nano, dbName, callback) {
         status_code_already_exists = 412; // Means the DB already exists
 
     // Create the database
+    logger.info('Creating Database');
     nano.db.create(dbName, function (err) {
         if (!err || err.status_code === status_code_already_exists) {
             db = nano.use(dbName);
             if (!err) {
-                errorlog.info('Created database ' + dbName);
+                logger.info('Created database ' + dbName);
             }
             callback();
         } else {
@@ -27,9 +28,12 @@ module.exports = function (dbUrl) {
 
     return {
         connect: function (callback) {
+            // Since couchdb runs a stateless server, we do not really need to connect in advance.
+            // However, this is where we ensure that the database exists, and if not, create it.
             var dbName = 'cdns';
 
             if (connection) {
+                // We already have a 'connection'
                 process.nextTick(function () {
                     callback(null, connection);
                 });
@@ -37,7 +41,7 @@ module.exports = function (dbUrl) {
                 var nano = require('nano')(dbUrl);
                 createDatabase(nano, dbName, function (err) {
                     if (err) {
-                        errorlog.warn(err);
+                        logger.warn(err);
                         callback(err);
                     } else {
                         connection = nano.use(dbName);
