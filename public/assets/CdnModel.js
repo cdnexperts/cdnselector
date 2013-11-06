@@ -1,13 +1,9 @@
-$(function() {
-    var app = window.app = window.app || {};
+var CDN = Backbone.Model.extend({
+    idAttribute: '_id'
+});
 
-    app.CDN = Backbone.Model.extend({
-        idAttribute: '_id'
-    });
-
-    app.SupportedCDNs = Backbone.Collection.extend({
-        model: app.CDN,
-        url: app.baseUrl + '/cdns',
-        comparator: 'defaultOrder'
-    });
+var SupportedCDNs = Backbone.Collection.extend({
+    model: CDN,
+    url: '/cdns/cdns',
+    comparator: 'defaultOrder'
 });

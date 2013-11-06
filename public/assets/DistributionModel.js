@@ -1,66 +1,60 @@
-$(function() {
-    var app = window.app = window.app || {};
+var Distribution = Backbone.Model.extend({
+    idAttribute: '_id',
+    urlRoot: '/cdns/distributions',
 
-    app.Distribution = Backbone.Model.extend({
-        idAttribute: '_id',
-        urlRoot: '/cdns/distributions',
+    defaults: function() {
+        return {
+            type: 'distribution',
+            hostnames: [],
+            providers: [],
+            authParam: '',
+            authSecrets: []
+        }
+    },
 
-        defaults: function() {
-            return {
-                type: 'distribution',
-                hostnames: [],
-                providers: [],
-                authParam: '',
-                authSecrets: []
-            }
-        },
+    validate: function(attrs, options) {
 
-        validate: function(attrs, options) {
+        // There must be a name
+        if (_.isEmpty(attrs.name)) {
+            return "You must specify a name";
+        }
 
-            // There must be a name
-            if (_.isEmpty(attrs.name)) {
-                return "You must specify a name";
-            }
+        // There must be at least one hostname
+        if (!attrs.hostnames || !attrs.hostnames.length > 0 || _.isEmpty(attrs.hostnames[0])) {
+            return "You must specify at least one hostname";
+        }
 
-            // There must be at least one hostname
-            if (!attrs.hostnames || !attrs.hostnames.length > 0 || _.isEmpty(attrs.hostnames[0])) {
-                return "You must specify at least one hostname";
-            }
+        // Examine each provider
+        var activeProviderFound = false;
+        var err;
+        attrs.providers.forEach(function(provider) {
+            if (provider.active) {
+                activeProviderFound = true;
 
-            // Examine each provider
-            var activeProviderFound = false;
-            var err;
-            attrs.providers.forEach(function(provider) {
-                if (provider.active) {
-                    activeProviderFound = true;
-
-                    // If cloudfront is enabled, a Hostname must be specified
-                    if (provider.id === 'cdns:cdn:amazon' && _.isEmpty(provider.hostname)) {
-                        err = 'You must specify a hostname for Amazon Cloudfront (or otherwise disable it)';
-                    }
-
-                    // If generic is enabled, a hostname must be specified
-                    if (provider.id === 'cdns:cdn:generic' && _.isEmpty(provider.hostname)) {
-                        err = 'You must specify a hostname for the Generic CDN (or otherwise disable it)';
-                    }
+                // If cloudfront is enabled, a Hostname must be specified
+                if (provider.id === 'cdns:cdn:amazon' && _.isEmpty(provider.hostname)) {
+                    err = 'You must specify a hostname for Amazon Cloudfront (or otherwise disable it)';
                 }
 
-
-            });
-            if (err) {
-                return err;
+                // If generic is enabled, a hostname must be specified
+                if (provider.id === 'cdns:cdn:generic' && _.isEmpty(provider.hostname)) {
+                    err = 'You must specify a hostname for the Generic CDN (or otherwise disable it)';
+                }
             }
-
-            // At least one provider must be active
-            if (!activeProviderFound) {
-                return "You must enable at least one CDN provider";
-            }
-
+        });
+        if (err) {
+            return err;
         }
-    });
 
-    app.Distributions = Backbone.Collection.extend({
-        model: app.Distribution,
-        url: app.baseUrl + '/distributions'
-    });
+        // At least one provider must be active
+        if (!activeProviderFound) {
+            return "You must enable at least one CDN provider";
+        }
+
+    }
+});
+
+var Distributions = Backbone.Collection.extend({
+    model: Distribution,
+    url: '/cdns/distributions'
 });
