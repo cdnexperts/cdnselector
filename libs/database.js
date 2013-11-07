@@ -9,7 +9,6 @@ function createDatabase (nano, dbName, callback) {
         status_code_already_exists = 412; // Means the DB already exists
 
     // Create the database
-    logger.info('Creating Database');
     nano.db.create(dbName, function (err) {
         if (!err || err.status_code === status_code_already_exists) {
             db = nano.use(dbName);

@@ -19,39 +19,86 @@ dbHelper.connect(function (err, database) {
         return;
     }
 
-    var config = require('./dao/Config')(database),
+    var cdnDao = require('./dao/CDNs')(database),
         operatorNetworks = require('./dao/OperatorNetworks')(database),
-        altoClient = new AltoClient();
+        altoClients = {};
 
-    // Whenever the config loads, notify the ALTO client.
-    // This will trigger it to poll immediately.
-    config.on('updated', function (confParams) {
-        altoClient.setConfig(confParams.alto);
-    });
+    function onNetworkMapChanged (networkList, cdnId) {
+        logger.info('ALTO Client for ' + cdnId + ' detected change in the network map');
 
-    // Listen for errors from the config loader
-    config.on('error', function (err) {
-        logger.error("Could not load config for Alto client", err);
-    });
-
-    // Listen out for changes to the ALTO network map
-    // and stuff them into the DB.
-    altoClient.on('networkMapChanged', function (ipLookup) {
-        logger.info('ALTO Client detected change in the network map');
-
-        // Store ipLookup in the database
-        operatorNetworks.save(ipLookup, localConfig.altoSourceId, function (err) {
-            if (err) {
-                logger.error("Could not save Operator Ranges to database.", err);
+        cdnDao.fetch(cdnId, function (err, cdnConfig) {
+            if (!err) {
+                if (!cdnConfig.clientIpWhitelist) {
+                    cdnConfig.clientIpWhitelist = {};
+                }
+                cdnConfig.clientIpWhitelist['alto'] = networkList;
+                if (cdnConfig.altoService) {
+                    cdnConfig.altoService.lastChanged = new Date().toISOString();
+                }
+                cdnDao.save(cdnConfig, function (err) {
+                    if (err) {
+                        logger.error("Could not save Operator Ranges to database.", err);
+                    } else {
+                        logger.info("Saved clientIpWhitelist to database for " + cdnId);
+                    }
+                });
             } else {
-                logger.info("Saved IP ranges to database. source=" + localConfig.altoSourceId);
+                logger.error('Cannot fetch CDN config for update', err);
             }
         });
+    }
+
+    function onAltoError (err) {
+        logger.info('Error from ALTO client : ' + err);
+    }
+
+    function createAltoClient(config, cdnId) {
+        // Create a client to handle this CDN
+        var altoClient = new AltoClient(config, cdnId);
+        altoClient.on('networkMapChanged', onNetworkMapChanged);
+        altoClients[cdnId] = altoClient;
+        logger.info('Created ALTO client for ' + cdnId);
+    }
+
+    // When the CDN config is available create a client for
+    // Each CDN that has an ALTO service configured
+    cdnDao.on('ready', function () {
+        var cdnsConfig = cdnDao.getAll();
+        for (var cdnId in cdnsConfig) {
+            var cdnConfig = cdnsConfig[cdnId];
+            if (cdnConfig.altoService) {
+                createAltoClient(cdnConfig.altoService, cdnId);
+            }
+        }
     });
 
-    // Listen out for errors from the ALTO client
-    altoClient.on('error', function (err) {
-        logger.info('Error from ALTO client : ' + err);
+    // If a CDN config changes then we should tell the ALTO client
+    cdnDao.on('updated', function (cdnId, cdnConfig) {
+        // Do we have an ALTO client for this CDN?
+        var altoClient = altoClients[cdnId];
+
+        if (altoClient && !cdnConfig.altoService) {
+            // The alto service config was removed, so we should stop
+            // the ALTO client for this CDN
+            altoClient.stop();
+            delete altoClients[cdnId];
+            logger.info('Stopped ALTO monitoring for ' + cdnId);
+            return;
+        }
+
+        if (altoClient && cdnConfig.altoService) {
+            // The alto client exists, and the config still contains
+            // an Alto service config. Pass in the new config in case it changed.
+            altoClient.setConfig(cdnConfig.altoService);
+            return;
+        }
+
+        if (!altoClient && cdnConfig.altoService) {
+            // There is no ALTO client, but an ALTO service is configured
+            // We should start a new client.
+            createAltoClient(cdnConfig.altoService, cdnId);
+            return;
+        }
     });
 });
 

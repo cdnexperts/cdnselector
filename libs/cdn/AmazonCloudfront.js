@@ -2,17 +2,14 @@
 "use strict";
 
 var util = require('util'),
-    GenericOttCDN = require('./GenericOttCDN'),
+    BaseCDN = require('./BaseCDN'),
     crypto = require('crypto'),
     url = require('url'),
     querystring = require('querystring'),
     errorlog = require('winston');
 
 function AmazonCloudfront(id, config, distribs) {
-    this.distribs = distribs;
-    this.id = id;
-    this.config = config;
-
+    AmazonCloudfront.super_.call(this, id, config, distribs);
 
     this.sanitizePathUri = function (pathUri) {
         // Remove any leading # signs
@@ -89,7 +86,7 @@ function AmazonCloudfront(id, config, distribs) {
     };
 }
 
-util.inherits(AmazonCloudfront, GenericOttCDN);
+util.inherits(AmazonCloudfront, BaseCDN);
 var proto = AmazonCloudfront.prototype;
 
 proto.generateTokenizedUrl = function (targetUrl, inboundTokenParams, provider) {

@@ -1,6 +1,6 @@
 /*jslint node: true */
 "use strict";
-var errorlog = require('winston'),
+var logger = require('winston'),
     BaseDao = require('./BaseDao.js'),
     util = require('util');
 
@@ -90,7 +90,7 @@ function Distributions(db) {
         // Monitor the database for changes to  distributions
         var feed = db.follow({since: 'now', filter: 'distributions/all'});
         feed.on('change', function (change) {
-            errorlog.info('Distribution config was updated: ' + JSON.stringify(change));
+            logger.info('Distribution config was updated: ' + JSON.stringify(change));
             if (change.deleted) {
                 for (distrib in this.distributions) {
                     if (this.distributions[distrib]._id === change.id) {
@@ -100,7 +100,7 @@ function Distributions(db) {
             } else {
                 db.get(change.id, {}, function (err, body) {
                     if (err) {
-                        errorlog.warn('Unable to load changes to distribution ' + change.id + ' : ' + err);
+                        logger.warn('Unable to load changes to distribution ' + change.id + ' : ' + err);
                     } else {
                         for (var hostname in self.distributions) {
                             if (self.distributions[hostname]._id === change.id) {
@@ -117,7 +117,7 @@ function Distributions(db) {
         });
 
         feed.on('error', function(err) {
-            errorlog.error('Lost connectivity with the DB changes feed for distributions', err);
+            logger.error('Lost connectivity with the DB changes feed for distributions', err);
         })
         feed.follow();
 
@@ -125,14 +125,14 @@ function Distributions(db) {
 
     self.createDatabaseDocs(dbDocs, function (err) {
         if (err) {
-            errorlog.error("Error whilst creating DB documents for Distributions.", err);
+            logger.error("Error whilst creating DB documents for Distributions.", err);
             self.emit('error', err);
         } else {
             self.loadAllDistributions(function (err) {
                 if (err) {
                     self.emit('error', err);
                 } else {
-                    self.emit('updated');
+                    self.emit('ready');
                 }
             });
 

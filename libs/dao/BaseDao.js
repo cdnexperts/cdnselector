@@ -69,6 +69,10 @@ proto.del = function (docId, callback) {
     });
 };
 
+proto.fetch = function (docId, callback) {
+    this.db.get(docId, {}, callback);
+};
+
 proto.save = function (doc, callback) {
     var self = this;
     // Force the type

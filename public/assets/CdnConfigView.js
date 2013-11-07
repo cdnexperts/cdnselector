@@ -28,8 +28,8 @@ var CdnConfigView = Backbone.View.extend({
     render: function() {
         var sscsUrl = '';
         if (this.model) {
-            var lookupService = this.model.get('lookupService');
-            sscsUrl = 'http://' + lookupService.host + ':' + lookupService.port + lookupService.path;
+            var routingService = this.model.get('routingService');
+            sscsUrl = 'http://' + routingService.host + ':' + routingService.port + routingService.path;
         }
         this.$el.html(this.template({ sscsUrl: sscsUrl }));
         return this;

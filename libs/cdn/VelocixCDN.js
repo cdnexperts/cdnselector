@@ -4,11 +4,14 @@
 var url = require('url'),
     http = require('http'),
     errorlog = require('winston'),
-    Cookies = require('cookies');
+    Cookies = require('cookies'),
+    util = require('util'),
+    BaseCDN = require('./BaseCDN');
 
 
 function VelocixCDN(id, config, distribs) {
-    this.sscsEndpoint = config.lookupService;
+    VelocixCDN.super_.call(this, id, config, distribs);
+    this.sscsEndpoint = config.routingService;
     this.id = id;
     this.config = config;
     this.distribs = distribs;
@@ -31,7 +34,7 @@ function VelocixCDN(id, config, distribs) {
         return url;
     };
 }
-
+util.inherits(VelocixCDN, BaseCDN);
 var proto = VelocixCDN.prototype;
 
 proto.selectSurrogate = function (clientRequest, callback) {
@@ -125,18 +128,6 @@ proto.selectSurrogate = function (clientRequest, callback) {
     });
 
     return this;
-};
-
-proto.allowsOffNetClients = function () {
-    return this.config.allowOffNetClients;
-};
-
-proto.isActive = function () {
-    return this.config.active;
-};
-
-proto.toString = function () {
-    return this.id;
 };
 
 module.exports = VelocixCDN;

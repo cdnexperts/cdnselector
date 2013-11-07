@@ -1,10 +1,58 @@
 /*jslint node: true */
 "use strict";
 
-function CDNSelector(distribs, cdns, operatorNetworks) {
-    this.distribs = distribs;
-    this.cdns = cdns;
-    this.operatorNetworks = operatorNetworks;
+var VelocixCDN = require('./cdn/VelocixCDN'),
+    GenericOttCDN = require('./cdn/GenericOttCDN'),
+    AmazonCloudfront = require('./cdn/AmazonCloudfront'),
+    logger = require('winston');
+
+function CDNSelector(distribDao, cdnDao) {
+    this.distribDao = distribDao;
+    this.cdnDao = cdnDao;
+    this.cdnInstances = {};
+
+    var self = this,
+        cdnClasses = {
+            "cdns:cdn:driver:velocix": VelocixCDN,
+            "cdns:cdn:driver:generic": GenericOttCDN,
+            "cdns:cdn:driver:amazon": AmazonCloudfront
+        };
+
+    function loadCdnDriver (id, cdnConfig) {
+        var cdn;
+        for (var driverKey in cdnClasses) {
+            if (cdnConfig.driver === driverKey) {
+                cdn = new cdnClasses[driverKey](id, cdnConfig, distribDao);
+                break;
+            }
+        }
+        // No driver found, so assume its a generic HTTP CDN.
+        if (!cdn) {
+            cdn = new GenericOttCDN(id, cdnConfig, distribDao);
+        }
+        return cdn;
+    }
+
+    // Load a driver for each CDN at startup
+    var cdnConfigs = cdnDao.getAll();
+    for (var cdnId in cdnConfigs) {
+        self.cdnInstances[cdnId] = loadCdnDriver(cdnId, cdnConfigs[cdnId]);
+    }
+
+    // Reload drivers whenever a CDN config changes
+    cdnDao.on('updated', function (cdnId, cdnConfig) {
+        self.cdnInstances[cdnId] = loadCdnDriver(cdnId, cdnConfig.driver);
+    });
+
+    // Remove drivers whenever a CDN is deleted
+    cdnDao.on('deleted', function (cdnId) {
+        delete self.cdnInstances[cdnId];
+    });
+
+    cdnDao.on('error', function (err) {
+        logger.error('Error while loading CDN configs from database.', err);
+    });
+
 }
 
 var proto = CDNSelector.prototype;
@@ -15,11 +63,8 @@ proto.selectNetworks = function (clientIp, hostname) {
         candidates = [];
 
 
-    // Determine whether the client is On-net
-    var clientIsOnNet = this.operatorNetworks.addressIsOnNet(clientIp);;
-
     // Lookup the configuration for this hostname
-    var distrib = self.distribs.getByHostname(hostname);
+    var distrib = self.distribDao.getByHostname(hostname);
     if (!distrib || !distrib.providers) {
         return [];
     }
@@ -30,13 +75,11 @@ proto.selectNetworks = function (clientIp, hostname) {
         // Is this provider active?
         if (provider.active) {
             // Lookup the CDN
-            var cdn = self.cdns.getById(provider.id);
+            var cdn = self.cdnInstances[provider.id];
 
             // Does our network location allow us to use this provider?
-            if (cdn && cdn.isActive()) {
-                if (clientIsOnNet || cdn.allowsOffNetClients()) {
-                    candidates.push(cdn);
-                }
+            if (cdn && cdn.isActive() && cdn.isClientIpAllowed(clientIp)) {
+                candidates.push(cdn);
             }
         }
     });

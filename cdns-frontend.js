@@ -101,24 +101,18 @@ if (cluster.isMaster) {
         function loadDistributionConfig (next) {
             // Pre-load all distribution config
             distribs = require('./libs/dao/Distributions')(db);
-            distribs.on('updated', next);
-            distribs.on('error', next);
+            distribs.once('ready', next);
+            distribs.once('error', next);
         },
         function loadCDNs (next) {
             // Pre-load all CDN config
             cdns = require('./libs/dao/CDNs')(db, distribs);
-            cdns.on('updated', next);
-            cdns.on('error', next);
-        },
-        function loadOperatorNetworks (next) {
-            // Pre-load all Operator network config
-            operatorNetworks = require('./libs/dao/OperatorNetworks')(db);
-            operatorNetworks.on('updated', next);
-            operatorNetworks.on('error', next);
+            cdns.once('ready', next);
+            cdns.once('error', next);
         }
     ], function (err, results) {
         if (!err) {
-            cdnSelector = new CDNSelector(distribs, cdns, operatorNetworks);
+            cdnSelector = new CDNSelector(distribs, cdns);
 
             httpServer = new HttpServer(localConfig.port, cdnSelector, loggers.accesslog);
             httpServer.on('ready', function () {

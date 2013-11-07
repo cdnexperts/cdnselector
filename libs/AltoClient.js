@@ -2,17 +2,18 @@
 "use strict";
 var http = require('http'),
     url = require('url'),
-    errorlog = require('winston'),
+    logger = require('winston'),
     util = require('util'),
     EventEmitter = require('events').EventEmitter;;
 
 
-function AltoClient(config) {
+function AltoClient(config, clientId) {
     var self = this,
         defaultRefreshInterval = 3600,
         lastNetworkMapVersion = '';
 
     this.config = config;
+    this.clientId = clientId;
 
 
     function readJsonResponseBody (response, callback) {
@@ -42,7 +43,7 @@ function AltoClient(config) {
             i,
             resolvedUrl;
 
-        errorlog.debug('Parsing directory from ' + baseUrl);
+        logger.debug('Parsing directory from ' + baseUrl);
 
         // If a network map id was specified we look for that. Otherwise just select the
         // first network map that we find.
@@ -54,7 +55,7 @@ function AltoClient(config) {
                     if (self.config.networkMapId && resource.id === self.config.networkMapId) {
                         // Exact match for the network map id
                         resolvedUrl = url.resolve(baseUrl, resource.uri);
-                        errorlog.debug('Found network map ' + self.config.networkMapId
+                        logger.debug('Found network map ' + self.config.networkMapId
                             + ' in directory at ' + resolvedUrl);
 
                         self.fetchNetworkMap(resolvedUrl, callback);
@@ -65,7 +66,7 @@ function AltoClient(config) {
                         // No network map was specified, so pick the first one in the directory.
                         // (or should we grab all of them? to be checked)
                         resolvedUrl = url.resolve(baseUrl, resource.uri);
-                        errorlog.debug('Selecting first network map in directory, which is '
+                        logger.debug('Selecting first network map in directory, which is '
                             + resource.id + ' at ' + resolvedUrl);
 
                         self.fetchNetworkMap(resolvedUrl, callback);
@@ -91,7 +92,7 @@ function AltoClient(config) {
             if (networkMapHasChanged(networkMap)) {
 
                 if (networkMap.data && networkMap.data.map) {
-                    errorlog.debug('Updating network map lookup');
+                    logger.debug('Updating network map lookup');
                     newIpList = [];
                     pids = networkMap.data.map;
                     for (pid in pids) {
@@ -105,7 +106,7 @@ function AltoClient(config) {
                         }
                     }
                     self.ipList = newIpList;
-                    self.emit('networkMapChanged', self.ipList);
+                    self.emit('networkMapChanged', self.ipList, self.clientId);
                 } else {
                     throw new Error('Network map does not appear to be valid (expected a data.map section)');
                 }
@@ -125,11 +126,11 @@ function AltoClient(config) {
             versionString = versionTag['resource-id'] + versionTag['tag'];
 
             if (lastNetworkMapVersion !== versionString) {
-                errorlog.info('Network map has changed. New version is ' + versionString);
+                logger.info('Network map has changed. New version is ' + versionString);
                 lastNetworkMapVersion = versionString;
                 return true;
             } else {
-                errorlog.debug('Network map has not changed. Version is still ' + versionString);
+                logger.debug('Network map has not changed. Version is still ' + versionString);
             }
 
         } else {
@@ -143,7 +144,7 @@ function AltoClient(config) {
 
         if (ranges) {
             for (i = 0; i < ranges.length; i += 1) {
-                errorlog.debug(ranges[i] + ' is on-net in pid ' + pid);
+                logger.debug(ranges[i] + ' is on-net in pid ' + pid);
                 rangeTokens = ranges[i].split('/');
                 ipList.push({ network: rangeTokens[0], prefix: parseInt(rangeTokens[1])});
             }
@@ -153,8 +154,8 @@ function AltoClient(config) {
     this.loadAndMonitorNetworkMap = function () {
         self.fetchNetworkMap(self.config.altoServiceUrl, function (err) {
             if (err) {
-                errorlog.error('Error while refreshing ALTO network map : ' + err);
-                self.emit('error', err);
+                logger.error('Error while refreshing ALTO network map : ' + err);
+                self.emit('error', err, self.clientId);
             } else {
                 // We fetched ok first time, so set a timer to launch subsequent goes
                 if (self.refreshIntervalId) {
@@ -162,9 +163,10 @@ function AltoClient(config) {
                     self.refreshIntervalId = null;
                 }
                 self.refreshIntervalId = setInterval(function () {
+                    console.log('Tick');
                     self.fetchNetworkMap(self.config.altoServiceUrl, function (err) {
                         if (err) {
-                            errorlog.error('Error while refreshing ALTO network map : ' + err);
+                            logger.error('Error while refreshing ALTO network map : ' + err);
                         }
                     });
                 }, (self.config.refreshInterval || defaultRefreshInterval) * 1000);
@@ -173,7 +175,7 @@ function AltoClient(config) {
     };
 
     this.fetchNetworkMap = function (url, callback) {
-        errorlog.info('Refreshing network map from ALTO service at : ' + url);
+        logger.info('Refreshing network map from ALTO service at : ' + url);
 
         http.get(url, function(response) {
             var contentType;
@@ -222,21 +224,34 @@ function AltoClient(config) {
 util.inherits(AltoClient, EventEmitter);
 var proto = AltoClient.prototype;
 
-
 proto.getIpList = function () {
     return this.ipList;
 };
 
 proto.setConfig = function (config) {
-    this.config = config;
-    this.loadAndMonitorNetworkMap(this.config.altoServiceUrl);
+    // Only interupt the polling cycle if something really has changed
+    // in the ALTO service config
+    if (this.config.altoServiceUrl !== config.altoServiceUrl
+        || this.config.refreshInterval !== config.refreshInterval)
+    {
+        this.config = config;
+        logger.info('Forcing refresh of network map');
+        this.loadAndMonitorNetworkMap();
+    } else {
+        this.config = config;
+    }
 };
-
 
 proto.refresh = function () {
     // This is mostly useful for unit testing so we don't have
     // to wait for the scheduled refresh.
-    this.loadAndMonitorNetworkMap(this.config.altoServiceUrl);
+    this.loadAndMonitorNetworkMap();
+};
+
+proto.stop = function () {
+    if (self.refreshIntervalId) {
+        clearInterval(self.refreshIntervalId);
+    }
 };
 
 

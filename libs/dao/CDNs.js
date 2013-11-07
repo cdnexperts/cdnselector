@@ -1,9 +1,6 @@
 /*jslint node: true */
 "use strict";
-var VelocixCDN = require('../cdn/VelocixCDN'),
-    GenericOttCDN = require('../cdn/GenericOttCDN'),
-    AmazonCloudfront = require('../cdn/AmazonCloudfront'),
-    errorlog = require('winston'),
+var errorlog = require('winston'),
     BaseDao = require('./BaseDao.js'),
     util = require('util');
 
@@ -26,21 +23,39 @@ var dbDocs = dbDocs = {
     },
     "cdns:cdn:velocix": {
         "name": "Velocix",
-        "driver": "cdns:cdn:velocix",
+        "driver": "cdns:cdn:driver:velocix",
         "active": true,
         "allowOffNetClients": false,
         "type": "cdns:cdn",
         "defaultOrder": 0,
-        "lookupService": {
+        "routingService": {
+            "type": "cdns:cdn:routingServiceType:velocixSSCSv2",
             "proto": "sscsv2",
             "host": "routing.zzz83s2.pub",
             "port": 8003,
             "path": "/sscsv2"
+        },
+        "altoService": {
+           "altoServiceUrl": "http://demo.cdnexperts.net/demo/cdns/alto/directory.altod",
+           "refreshInterval": 60,
+           "ignorePids": [
+               "ignore",
+               "offnet",
+               "PID3"
+           ],
+           "networkMapId": "default-network-map",
+           "lastChanged": null
+        },
+        "clientIpWhitelist": {
+            "manual": [
+                { "network": "127.0.0.0", "prefix": 8 }
+            ],
+            "alto": []
         }
     },
     "cdns:cdn:amazon": {
         "name": "Amazon Cloudfront",
-        "driver": "cdns:cdn:amazon",
+        "driver": "cdns:cdn:driver:amazon",
         "allowOffNetClients": true,
         "type": "cdns:cdn",
         "defaultOrder": 1,
@@ -48,7 +63,7 @@ var dbDocs = dbDocs = {
     },
     "cdns:cdn:generic": {
         "name": "Generic",
-        "driver": "cdns:cdn:generic",
+        "driver": "cdns:cdn:driver:generic",
         "allowOffNetClients": true,
         "type": "cdns:cdn",
         "defaultOrder": 2,
@@ -56,45 +71,23 @@ var dbDocs = dbDocs = {
     }
 };
 
-function CDNs(db, distribs) {
+function CDNs(db) {
     CDNs.super_.call(this, db, 'cdns', 'cdns:cdn');
-    var self = this,
-        cdnDrivers = {
-            "cdns:cdn:velocix": VelocixCDN,
-            "cdns:cdn:generic": GenericOttCDN,
-            "cdns:cdn:amazon": AmazonCloudfront
-        };
+    var self = this;
 
     this.cdns = {};
 
-    function addCdn (id, doc) {
-        var cdn;
-        for (var driverKey in cdnDrivers) {
-            if (id === driverKey) {
-                cdn = new cdnDrivers[driverKey](id, doc, distribs);
-                break;
-            }
-        }
-        // No driver found, so assume its a generic HTTP CDN.
-        if (!cdn) {
-            cdn = new GenericOttCDN(id, doc, distribs);
-        }
-
-        self.cdns[id] = cdn;
-    }
-
     this.loadAllCDNs = function (callback) {
-        var self = this;
 
         // Load all from the database
         db.view('cdns', 'all', function (err, body) {
             if (!err) {
                 body.rows.forEach(function (row) {
-                    addCdn(row.key, row.value);
+                    self.cdns[row.key] = row.value;
                 });
-                callback();
+                self.emit('ready');
             } else {
-                callback(new Error('Error from Database while fetching cdns : ' + err));
+                self.emit('error', new Error('Error from Database while fetching cdns : ' + err));
             }
         });
 
@@ -104,18 +97,21 @@ function CDNs(db, distribs) {
             errorlog.info('CDN config was updated: ' + JSON.stringify(change));
             if (change.deleted) {
                 delete self.cdns[change.id];
+                self.emit('deleted', change.id);
             } else {
                 db.get(change.id, {}, function (err, body) {
                     if (err) {
                         errorlog.warn('Unable to load changes to CDN ' + change.id + ' : ' + err);
+                        self.emit('error', err)
                     } else {
-                        addCdn(body._id, body);
+                        self.emit('updated', change.id, body);
                     }
                 });
             }
         });
         feed.on('error', function(err) {
             errorlog.error('Lost connectivity with the DB changes feed for CDNs', err);
+            self.emit('error', err)
         })
         feed.follow();
     };
@@ -125,13 +121,7 @@ function CDNs(db, distribs) {
             errorlog.error("Error whilst creating DB documents for CDNs.", err);
             self.emit('error', err);
         } else {
-            self.loadAllCDNs(function (err) {
-                if (err) {
-                    self.emit('error', err);
-                } else {
-                    self.emit('updated');
-                }
-            });
+            self.loadAllCDNs();
         }
     });
 }
@@ -143,6 +133,10 @@ proto.getById = function (id) {
     return this.cdns[id];
 };
 
-module.exports = function (database, distribs) {
-    return new CDNs(database, distribs);
+proto.getAll = function () {
+    return this.cdns;
+};
+
+module.exports = function (database) {
+    return new CDNs(database);
 };

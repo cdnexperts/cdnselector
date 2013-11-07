@@ -12,6 +12,5 @@ module.exports = {
     consolePort: process.env.CDNS_CONSOLE_PORT || 3000,
     logLevel: process.env.CDNS_LOG_LEVEL || 'info',
     logDir: process.env.CDNS_LOG_DIR || 'log',
-    logRotationInterval: process.env.CDNS_LOG_ROTATION_INTERVAL || 60,
-    altoSourceId: process.env.CDNS_ALTO_SOURCE_ID || 'alto-fetcher-1'
+    logRotationInterval: process.env.CDNS_LOG_ROTATION_INTERVAL || 60
 };
