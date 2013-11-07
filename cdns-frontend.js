@@ -38,10 +38,9 @@ function errorExit(err) {
 }
 
 
-var distribs,
-    cdns,
+var distribDao,
+    cdnDao,
     cdnSelector,
-    operatorNetworks,
     db,
     httpServer;
 
@@ -100,19 +99,19 @@ if (cluster.isMaster) {
         },
         function loadDistributionConfig (next) {
             // Pre-load all distribution config
-            distribs = require('./libs/dao/Distributions')(db);
-            distribs.once('ready', next);
-            distribs.once('error', next);
+            distribDao = require('./libs/dao/DistributionDao')(db);
+            distribDao.once('ready', next);
+            distribDao.once('error', next);
         },
         function loadCDNs (next) {
             // Pre-load all CDN config
-            cdns = require('./libs/dao/CDNs')(db, distribs);
-            cdns.once('ready', next);
-            cdns.once('error', next);
+            cdnDao = require('./libs/dao/CDNDao')(db, distribDao);
+            cdnDao.once('ready', next);
+            cdnDao.once('error', next);
         }
     ], function (err, results) {
         if (!err) {
-            cdnSelector = new CDNSelector(distribs, cdns);
+            cdnSelector = new CDNSelector(distribDao, cdnDao);
 
             httpServer = new HttpServer(localConfig.port, cdnSelector, loggers.accesslog);
             httpServer.on('ready', function () {

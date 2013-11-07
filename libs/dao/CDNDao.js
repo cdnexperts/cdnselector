@@ -4,7 +4,7 @@ var errorlog = require('winston'),
     BaseDao = require('./BaseDao.js'),
     util = require('util');
 
-var dbDocs = dbDocs = {
+var dbDocs = {
     "_design/cdns": {
         "views": {
             "all": {
@@ -25,11 +25,9 @@ var dbDocs = dbDocs = {
         "name": "Velocix",
         "driver": "cdns:cdn:driver:velocix",
         "active": true,
-        "allowOffNetClients": false,
         "type": "cdns:cdn",
         "defaultOrder": 0,
         "routingService": {
-            "type": "cdns:cdn:routingServiceType:velocixSSCSv2",
             "proto": "sscsv2",
             "host": "routing.zzz83s2.pub",
             "port": 8003,
@@ -56,7 +54,6 @@ var dbDocs = dbDocs = {
     "cdns:cdn:amazon": {
         "name": "Amazon Cloudfront",
         "driver": "cdns:cdn:driver:amazon",
-        "allowOffNetClients": true,
         "type": "cdns:cdn",
         "defaultOrder": 1,
         "active": true
@@ -64,15 +61,14 @@ var dbDocs = dbDocs = {
     "cdns:cdn:generic": {
         "name": "Generic",
         "driver": "cdns:cdn:driver:generic",
-        "allowOffNetClients": true,
         "type": "cdns:cdn",
         "defaultOrder": 2,
         "active": true
     }
 };
 
-function CDNs(db) {
-    CDNs.super_.call(this, db, 'cdns', 'cdns:cdn');
+function CDNDao(db) {
+    CDNDao.super_.call(this, db, 'cdns', 'cdns:cdn');
     var self = this;
 
     this.cdns = {};
@@ -126,8 +122,8 @@ function CDNs(db) {
     });
 }
 
-util.inherits(CDNs, BaseDao);
-var proto = CDNs.prototype;
+util.inherits(CDNDao, BaseDao);
+var proto = CDNDao.prototype;
 
 proto.getById = function (id) {
     return this.cdns[id];
@@ -138,5 +134,5 @@ proto.getAll = function () {
 };
 
 module.exports = function (database) {
-    return new CDNs(database);
+    return new CDNDao(database);
 };

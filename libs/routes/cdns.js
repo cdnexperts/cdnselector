@@ -3,7 +3,7 @@
 var logger = require('winston');
 
 module.exports = function (app, database) {
-    var cdnDao = require('../../libs/dao/CDNs')(database);
+    var cdnDao = require('../../libs/dao/CDNDao')(database);
 
     app.get('/cdns/cdns', function (req, res){
         var cdns = cdnDao.getAll(function (err, rows) {

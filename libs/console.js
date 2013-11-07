@@ -10,7 +10,6 @@ var express = require('express'),
     path = require('path'),
     localConfig = require('./localConfig'),
     dbHelper = require('./database')(localConfig.dbUrl),
-
     app = express();
 
 // all environments

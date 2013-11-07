@@ -19,8 +19,7 @@ dbHelper.connect(function (err, database) {
         return;
     }
 
-    var cdnDao = require('./dao/CDNs')(database),
-        operatorNetworks = require('./dao/OperatorNetworks')(database),
+    var cdnDao = require('./dao/CDNDao')(database),
         altoClients = {};
 
     function onNetworkMapChanged (networkList, cdnId) {

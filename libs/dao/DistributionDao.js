@@ -65,8 +65,8 @@ var dbDocs = {
     }
 };
 
-function Distributions(db) {
-    Distributions.super_.call(this, db, 'distributions', 'cdns:distribution');
+function DistributionDao(db) {
+    DistributionDao.super_.call(this, db, 'distributions', 'cdns:distribution');
     var self = this;
     this.distributions = {};
     this.db = db;
@@ -140,13 +140,13 @@ function Distributions(db) {
     });
 
 }
-util.inherits(Distributions, BaseDao);
-var proto = Distributions.prototype;
+util.inherits(DistributionDao, BaseDao);
+var proto = DistributionDao.prototype;
 
 proto.getByHostname = function (hostname) {
     return this.distributions[hostname];
 };
 
 module.exports = function (database) {
-    return new Distributions(database);
+    return new DistributionDao(database);
 };

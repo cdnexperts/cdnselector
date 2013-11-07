@@ -3,7 +3,7 @@
 var logger = require('winston');
 
 module.exports = function (app, database) {
-    var distribDao = require('../../libs/dao/Distributions')(database);
+    var distribDao = require('../../libs/dao/DistributionDao')(database);
 
     app.get('/cdns/distributions', function (req, res){
         var distribs = distribDao.getAll(function (err, rows) {

@@ -16,7 +16,6 @@ winston.add(winston.transports.Console, {
     timestamp: true
 });
 
-
 // Access Log
 var requestLogger = new RequestLogger(localConfig.logRotationInterval, localConfig.logDir);
 
