@@ -31,7 +31,9 @@
     "iptrie": "0.0.3",
     "async": "0.2.9",
     "node-uuid": "1.4.1",
-    "express": "3.4.4"
+    "express": "3.4.4",
+    "underscore": "1.5.2",
+    "validator": "2.0.0"
   },
   "devDependencies": {
     "mocha": "1.12.0",

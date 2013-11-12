@@ -28,13 +28,15 @@ var DistributionFormView = Backbone.View.extend({
             var foundProvider = false;
             templateParams.providers.forEach(function(provider) {
                 if (provider.id === cdn.id) {
+                    provider.cdn = cdn.toJSON();
                     foundProvider = true;
                 }
             });
             if (!foundProvider) {
                 templateParams.providers.push({
                     id: cdn.id,
-                    active: templateParams.providers.length === 0
+                    active: templateParams.providers.length === 0,
+                    cdn: cdn.toJSON()
                 })
 
             }
@@ -50,6 +52,7 @@ var DistributionFormView = Backbone.View.extend({
         $('#errorBox p').text(err.toString());
         $('#errorBox').removeClass('hide');
         $('#errorBox').show();
+        Utils.scrollToTop();
     },
 
     renderTabs: function() {
@@ -98,7 +101,6 @@ var DistributionFormView = Backbone.View.extend({
     },
 
     saveDistribution: function(e) {
-        console.log('Save Button Click Event');
         e.preventDefault();
 
         var self = this,
@@ -125,14 +127,20 @@ var DistributionFormView = Backbone.View.extend({
             $('#hostnames').val().trim().split(/[\n,]/).forEach(function(hostname) {
                 distribution.hostnames.push(hostname);
             });
-            console.log(distribution.hostnames);
         }
-        $('#tabs ul.tabHeads li a').each(function(i, a) {
-            var provider = {};
-            var providerElId = a.hash.replace('#', '');
-            provider.id = 'cdns:cdn:' + providerElId;
 
-            var tab = $('#tabs #' + providerElId);
+
+        $('#tabs ul li a').each(function(i, a) {
+            var provider = {};
+            provider.id = $(a).attr('providerId');
+
+            // Lookup the tab's div element
+            var tab = $('#tabs div#' + provider.id.replace(/:/g, '\\:'));
+
+            // Copy the CDN name and driver into the provider
+            var cdn = self.options.cdnCollection.get(provider.id);
+            provider.driver = cdn.get('driver');
+            provider.name = cdn.get('name');
 
             // Active flag
             provider.active = $('input[type=checkbox]:checked', tab).length === 1;
@@ -149,7 +157,6 @@ var DistributionFormView = Backbone.View.extend({
                     awsCfPrivateKey:  $('#awsCfPrivateKey', tab).val()
                 };
             }
-
             distribution.providers.push(provider);
         });
         this.model.save(distribution, {
@@ -162,9 +169,18 @@ var DistributionFormView = Backbone.View.extend({
                 $('#successBox').removeClass('hide');
                 $('#successBox').show();
                 self.options.router.navigate('distributions', {trigger: true});
+                Utils.scrollToTop();
             },
             error: function(model, xhr, options) {
-                self.renderError(model, 'Error whilst saving distribution', options);
+                var msg;
+                if (xhr.status === 409) {
+                    msg = 'Cannot save because someone else recently edited this distribution.'
+                        + 'Please reload and try again.';
+                } else {
+                    msg = 'An error occured while saving the distribution (' + xhr.status + ')';
+                }
+                self.renderError(model, msg, options);
+                Utils.scrollToTop();
             }
         });
     },

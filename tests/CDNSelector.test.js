@@ -1,15 +1,68 @@
 /*jslint node: true*/
 /*global describe, it */
 "use strict";
-require('should');
+var should = require('should');
 
 var CDNSelector = require('../libs/CDNSelector');
 
 describe('CDNSelector', function () {
     describe('#selectNetworks', function () {
 
-        it('should provide a list of CDNs in the configured priority order', function() {
-            var distribs = {
+            it('should provide a list of CDNs in the configured priority order', function() {
+                var distribs = {
+                        getByHostname: function () {
+                            return {
+                                providers: [
+                                    {
+                                        id: 'velocix',
+                                        active: true
+                                    },
+                                    {
+                                        id: 'akamai',
+                                        active: true,
+                                        hostname: 'id1234.akamai.com'
+                                    },
+                                    {
+                                        id: 'amazon',
+                                        active: true,
+                                        hostname: 'id12345.cloudfront.net'
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    cdns = {
+                        getAll: function (id) {
+                            return {
+                                velocix: {
+                                    driver: 'cdns:cdn:driver:velocix',
+                                    active: true
+                                },
+                                akamai: {
+                                    driver: 'cdns:cdn:driver:generic',
+                                    active: true
+                                },
+                                amazon: {
+                                    driver: 'cdns:cdn:driver:amazon',
+                                    active: true
+                                }
+                            };
+                        },
+                        on: function () {}
+                    },
+                    cdnSelector = new CDNSelector(distribs, cdns);
+
+                    var cdns = cdnSelector.selectNetworks("1.2.3.4", "www.example.com");
+                    cdns.length.should.equal(3);
+                    cdns[0].id.should.equal('velocix');
+                    cdns[1].id.should.equal('akamai');
+                    cdns[2].id.should.equal('amazon');
+
+            });
+
+        it('should filter CDNs by their IP whitelist', function() {
+            var eventHandlers = {},
+                distribs = {
                     getByHostname: function () {
                         return {
                             providers: [
@@ -26,125 +79,89 @@ describe('CDNSelector', function () {
                                     id: 'amazon',
                                     active: true,
                                     hostname: 'id12345.cloudfront.net'
+                                },
+                                {
+                                    id: 'rackspace',
+                                    active: true,
+                                    hostname: 'id12345.racks.net'
                                 }
                             ]
                         }
                     }
                 },
                 cdns = {
-                    getById: function(id) {
+                    getAll: function (id) {
                         return {
                             velocix: {
-                                id: 'velocix',
-                                allowsOffNetClients: function () {
-                                    return false;
-                                },
-                                isActive: function () {
-                                    return true;
+                                driver: 'cdns:cdn:driver:velocix',
+                                active: true,
+                                clientIpWhitelist: {
+                                    manual: [
+                                        { network: '2.1.1.0', prefix: 24 }
+                                    ]
                                 }
                             },
                             akamai: {
-                                id: 'akamai',
-                                allowsOffNetClients: function () {
-                                    return true;
-                                },
-                                isActive: function () {
-                                    return true;
+                                driver: 'cdns:cdn:driver:generic',
+                                active: true,
+                                clientIpWhitelist: {
+                                    manual: []  // An empty whitelist should mean no restrictions
                                 }
                             },
-                            amazon: {
-                                id: 'amazon',
-                                allowsOffNetClients: function () {
-                                    return true;
-                                },
-                                isActive: function () {
-                                    return true;
+                            amazon: { // An absent whitelist should mean no restrictions
+                                driver: 'cdns:cdn:driver:amazon',
+                                active: true
+                            },
+                            rackspace: {
+                                driver: 'cdns:cdn:driver:generic',
+                                active: true,
+                                clientIpWhitelist: {
+                                    alto: [ // Client IP is within this whitelist
+                                        { network: '1.2.0.0', prefix: 16 },
+                                        { network: '1.7.0.0', prefix: 24 }
+                                    ],
+                                    manual: [
+                                    ]
                                 }
                             }
-                        }[id];
+                        };
+                    },
+                    on: function (event, handler) {
+                        eventHandlers[event] = handler;
                     }
                 },
-                networkMap = {
-                    addressIsOnNet: function() {
-                        return true;
-                    }
-                },
-                cdnSelector = new CDNSelector(distribs, cdns, networkMap);
+                cdnSelector = new CDNSelector(distribs, cdns);
+                should.exist(eventHandlers.error);
+                should.exist(eventHandlers.updated);
 
-                var cdns = cdnSelector.selectNetworks("1.2.3.4", "www.example.com");
+                var cdns = cdnSelector.selectNetworks("1.2.0.1", "www.example.com");
                 cdns.length.should.equal(3);
-                cdns[0].id.should.equal('velocix');
-                cdns[1].id.should.equal('akamai');
-                cdns[2].id.should.equal('amazon');
-        });
+                cdns[0].id.should.equal('akamai');
+                cdns[1].id.should.equal('amazon');
+                cdns[2].id.should.equal('rackspace');
 
-        it('should filter CDNs that do not allow off-net clients if the client is off-net', function() {
-            var distribs = {
-                    getByHostname: function () {
-                        return {
-                            providers: [
-                                {
-                                    id: 'velocix',
-                                    active: true
-                                },
-                                {
-                                    id: 'akamai',
-                                    active: true,
-                                    hostname: 'id1234.akamai.com'
-                                },
-                                {
-                                    id: 'amazon',
-                                    active: true,
-                                    hostname: 'id12345.cloudfront.net'
-                                }
-                            ]
-                        }
-                    }
-                },
-                cdns = {
-                    getById: function(id) {
-                        return {
-                            velocix: {
-                                id: 'velocix',
-                                allowsOffNetClients: function () {
-                                    return false;
-                                },
-                                isActive: function () {
-                                    return true;
-                                }
-                            },
-                            akamai: {
-                                id: 'akamai',
-                                allowsOffNetClients: function () {
-                                    return true;
-                                },
-                                isActive: function () {
-                                    return true;
-                                }
-                            },
-                            amazon: {
-                                id: 'amazon',
-                                allowsOffNetClients: function () {
-                                    return true;
-                                },
-                                isActive: function () {
-                                    return true;
-                                }
-                            }
-                        }[id];
-                    }
-                },
-                networkMap = {
-                    addressIsOnNet: function() {
-                        return false;
-                    }
-                },
-                cdnSelector = new CDNSelector(distribs, cdns, networkMap);
 
-                var cdns = cdnSelector.selectNetworks("1.2.3.4", "www.example.com");
+                console.log('<start>');
+                // Now throw in an update and retest
+                eventHandlers.updated('rackspace', {
+                    driver: 'cdns:cdn:driver:generic',
+                    active: true,
+                    clientIpWhitelist: {
+                        alto: [ // Client IP is within this whitelist
+                            { network: '1.3.0.0', prefix: 16 },
+                            { network: '1.7.0.0', prefix: 24 }
+                        ],
+                        manual: [
+                        ]
+                    }
+                });
+
+                cdns = cdnSelector.selectNetworks("1.2.0.1", "www.example.com");
                 cdns.length.should.equal(2);
                 cdns[0].id.should.equal('akamai');
                 cdns[1].id.should.equal('amazon');
+                console.log('</start>');
+
         });
 
         it('should filter CDNs that are configured as inactive', function() {
@@ -171,10 +188,11 @@ describe('CDNSelector', function () {
                     }
                 },
                 cdns = {
-                    getById: function(id) {
+                    getAll: function(id) {
                         return {
                             velocix: {
                                 id: 'velocix',
+                                driver: 'cdns:cdn:driver:velocix',
                                 allowsOffNetClients: function () {
                                     return false;
                                 },
@@ -184,6 +202,7 @@ describe('CDNSelector', function () {
                             },
                             akamai: {
                                 id: 'akamai',
+                                driver: 'cdns:cdn:driver:generic',
                                 allowsOffNetClients: function () {
                                     return true;
                                 },
@@ -193,6 +212,7 @@ describe('CDNSelector', function () {
                             },
                             amazon: {
                                 id: 'amazon',
+                                driver: 'cdns:cdn:driver:amazon',
                                 allowsOffNetClients: function () {
                                     return true;
                                 },
@@ -200,15 +220,11 @@ describe('CDNSelector', function () {
                                     return true;
                                 }
                             }
-                        }[id];
-                    }
+                        };
+                    },
+                    on: function () {}
                 },
-                networkMap = {
-                    addressIsOnNet: function() {
-                        return true;
-                    }
-                },
-                cdnSelector = new CDNSelector(distribs, cdns, networkMap);
+                cdnSelector = new CDNSelector(distribs, cdns);
 
                 var cdns = cdnSelector.selectNetworks("1.2.3.4", "www.example.com");
                 cdns.length.should.equal(2);
@@ -223,10 +239,11 @@ describe('CDNSelector', function () {
                     }
                 },
                 cdns = {
-                    getById: function(id) {
+                    getAll: function(id) {
                         return {
                             velocix: {
                                 id: 'velocix',
+                                driver: 'cdns:cdn:driver:velocix',
                                 allowsOffNetClients: function () {
                                     return false;
                                 },
@@ -236,6 +253,7 @@ describe('CDNSelector', function () {
                             },
                             akamai: {
                                 id: 'akamai',
+                                driver: 'cdns:cdn:driver:generic',
                                 allowsOffNetClients: function () {
                                     return true;
                                 },
@@ -245,6 +263,7 @@ describe('CDNSelector', function () {
                             },
                             amazon: {
                                 id: 'amazon',
+                                driver: 'cdns:cdn:driver:amazon',
                                 allowsOffNetClients: function () {
                                     return true;
                                 },
@@ -252,15 +271,11 @@ describe('CDNSelector', function () {
                                     return true;
                                 }
                             }
-                        }[id];
-                    }
+                        };
+                    },
+                    on: function () {}
                 },
-                networkMap = {
-                    addressIsOnNet: function() {
-                        return true;
-                    }
-                },
-                cdnSelector = new CDNSelector(distribs, cdns, networkMap);
+                cdnSelector = new CDNSelector(distribs, cdns);
 
                 var cdns = cdnSelector.selectNetworks("1.2.3.4", "www.example.com");
                 cdns.length.should.equal(0);

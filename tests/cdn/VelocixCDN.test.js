@@ -6,7 +6,7 @@ var should = require('should'),
     VelocixCDN = require('../../libs/cdn/VelocixCDN'),
 
     conf = {
-        lookupService: {
+        routingService: {
             host: 'localhost',
             port: 28888,
             path: '/sscsv2'
@@ -91,6 +91,43 @@ var should = require('should'),
 
 describe('VelocixCDN', function () {
 
+    describe('#isClientIpAllowed()', function () {
+        it('should allow any ip if the whitelist is absent', function () {
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+            velocix.isClientIpAllowed('1.2.3.4').should.be.true;
+        });
+
+        it('should allow any ip if the whitelist is empty', function () {
+            var confWithEmptyWhitelist = {
+                routingService: conf.routingService,
+                clientIpWhitelist: {
+                    alto: [],
+                    manual: []
+                }
+            }
+            var velocix = new VelocixCDN('velocix', confWithEmptyWhitelist, distribs);
+            velocix.isClientIpAllowed('1.2.3.4').should.be.true;
+        });
+
+        it('should only allow ips that are within the whitelist', function () {
+            var confWithWhitelist = {
+                routingService: conf.routingService,
+                clientIpWhitelist: {
+                    alto: [],
+                    manual: [
+                        { network: '1.0.0.0', prefix: 8 },
+                        { network: '2001:db8:beef:2::', prefix: 64 }
+                    ]
+                }
+            }
+            var velocix = new VelocixCDN('velocix', confWithWhitelist, distribs);
+            velocix.isClientIpAllowed('1.2.3.4').should.be.true;
+            velocix.isClientIpAllowed('2.2.3.4').should.be.false;
+            velocix.isClientIpAllowed('2001:db8:beef:2::1').should.be.true;
+            velocix.isClientIpAllowed('2001:db8:beef:3::1').should.be.false;
+        });
+    }),
+
 
     describe('#selectSurrogate()', function () {
         it('should report error event when connection is refused', function (done) {
@@ -119,7 +156,7 @@ describe('VelocixCDN', function () {
 
             testUtil.runTestAgainstLocalServer(velocixBehaviour, function (port, server) {
 
-                conf.lookupService.port = port;
+                conf.routingService.port = port;
                 var velocix = new VelocixCDN('velocix', conf, distribs);
 
 
@@ -145,7 +182,7 @@ describe('VelocixCDN', function () {
 
             testUtil.runTestAgainstLocalServer(velocixBehaviour, function (port, server) {
 
-                conf.lookupService.port = port;
+                conf.routingService.port = port;
                 var velocix = new VelocixCDN('velocix', conf, distribs);
 
 
@@ -171,7 +208,7 @@ describe('VelocixCDN', function () {
 
             testUtil.runTestAgainstLocalServer(velocixBehaviour, function (port, server) {
 
-                conf.lookupService.port = port;
+                conf.routingService.port = port;
                 var velocix = new VelocixCDN('velocix', conf, distribs);
 
                 mockRequest.headers['cookie'] = 'vxtoken=1234567890ABCDEF%3D; someOtherCookie=barf';
@@ -195,7 +232,7 @@ describe('VelocixCDN', function () {
 
             testUtil.runTestAgainstLocalServer(velocixBehaviour, function (port, server) {
 
-                conf.lookupService.port = port;
+                conf.routingService.port = port;
                 var velocix = new VelocixCDN('velocix', conf, distribs);
 
                 mockRequest.url = '/path/to/some/content.m3u8?param1=val1&param2=val2';
@@ -221,7 +258,7 @@ describe('VelocixCDN', function () {
 
             testUtil.runTestAgainstLocalServer(velocixBehaviour, function (port, server) {
 
-                conf.lookupService.port = port;
+                conf.routingService.port = port;
                 var velocix = new VelocixCDN('velocix', conf, distribs);
 
                 // This hostname is configured without a authParam

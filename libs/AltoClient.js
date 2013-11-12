@@ -4,14 +4,15 @@ var http = require('http'),
     url = require('url'),
     logger = require('winston'),
     util = require('util'),
-    EventEmitter = require('events').EventEmitter;;
+    EventEmitter = require('events').EventEmitter,
+    _ = require('underscore')._;
 
 
 function AltoClient(config, clientId) {
     var self = this,
-        defaultRefreshInterval = 3600,
-        lastNetworkMapVersion = '';
+        defaultRefreshInterval = 3600;
 
+    this.lastNetworkMapVersion = '';
     this.config = config;
     this.clientId = clientId;
 
@@ -125,9 +126,9 @@ function AltoClient(config, clientId) {
             versionTag = networkMap.data['map-vtag'];
             versionString = versionTag['resource-id'] + versionTag['tag'];
 
-            if (lastNetworkMapVersion !== versionString) {
+            if (self.lastNetworkMapVersion !== versionString) {
                 logger.info('Network map has changed. New version is ' + versionString);
-                lastNetworkMapVersion = versionString;
+                self.lastNetworkMapVersion = versionString;
                 return true;
             } else {
                 logger.debug('Network map has not changed. Version is still ' + versionString);
@@ -140,13 +141,16 @@ function AltoClient(config, clientId) {
 
     function storeNetworkRanges(ipList, ranges, pid) {
         var i,
-            rangeTokens;
+            rangeTokens,
+            prefix;
 
         if (ranges) {
             for (i = 0; i < ranges.length; i += 1) {
-                logger.debug(ranges[i] + ' is on-net in pid ' + pid);
                 rangeTokens = ranges[i].split('/');
-                ipList.push({ network: rangeTokens[0], prefix: parseInt(rangeTokens[1])});
+                prefix = parseInt(rangeTokens[1]);
+                if (prefix > 0) {
+                    ipList.push({ network: rangeTokens[0], prefix: prefix});
+                }
             }
         }
     }
@@ -163,7 +167,6 @@ function AltoClient(config, clientId) {
                     self.refreshIntervalId = null;
                 }
                 self.refreshIntervalId = setInterval(function () {
-                    console.log('Tick');
                     self.fetchNetworkMap(self.config.altoServiceUrl, function (err) {
                         if (err) {
                             logger.error('Error while refreshing ALTO network map : ' + err);
@@ -175,7 +178,8 @@ function AltoClient(config, clientId) {
     };
 
     this.fetchNetworkMap = function (url, callback) {
-        logger.info('Refreshing network map from ALTO service at : ' + url);
+        logger.info('Fetching ALTO network map from ' + url
+                    + '  (' + this.clientId + ')');
 
         http.get(url, function(response) {
             var contentType;
@@ -231,11 +235,10 @@ proto.getIpList = function () {
 proto.setConfig = function (config) {
     // Only interupt the polling cycle if something really has changed
     // in the ALTO service config
-    if (this.config.altoServiceUrl !== config.altoServiceUrl
-        || this.config.refreshInterval !== config.refreshInterval)
-    {
+    if (!_.isEqual(this.config, config)) {
         this.config = config;
         logger.info('Forcing refresh of network map');
+        this.lastNetworkMapVersion = '';
         this.loadAndMonitorNetworkMap();
     } else {
         this.config = config;
@@ -249,8 +252,8 @@ proto.refresh = function () {
 };
 
 proto.stop = function () {
-    if (self.refreshIntervalId) {
-        clearInterval(self.refreshIntervalId);
+    if (this.refreshIntervalId) {
+        clearInterval(this.refreshIntervalId);
     }
 };
 

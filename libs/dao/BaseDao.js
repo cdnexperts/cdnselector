@@ -90,7 +90,7 @@ proto.save = function (doc, callback) {
     });
 };
 
-proto.getAll = function (callback) {
+proto.fetchAll = function (callback) {
     this.db.view(this.designDoc, 'all', function (err, body) {
         if (err) {
             callback(err);

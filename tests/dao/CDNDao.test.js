@@ -31,16 +31,17 @@ describe('CDNs', function () {
             }
         };
 
-        var cdns = require('../../libs/dao/CDNs')(mockDb);
-        cdns.on('updated', function () {
-            cdns.getById('velocix').toString().should.equal('velocix');
-            cdns.getById('akamai').toString().should.equal('akamai');
+        var cdns = require('../../libs/dao/CDNDao')(mockDb);
+        cdns.on('ready', function () {
+            cdns.getById('velocix').toString().should.equal('velocixVal');
+            cdns.getById('akamai').toString().should.equal('akamaiVal');
             should.not.exist(cdns.getById('bogus'));
             done();
         });
         cdns.on('error', function (err) {
             should.not.exist(err);
             should.fail('Error callback unexpected');
+            done();
         });
 
     });
@@ -61,9 +62,9 @@ describe('CDNs', function () {
             }
         };
 
-        var cdns = require('../../libs/dao/CDNs')(mockDb);
-        cdns.on('updated', function (err) {
-            should.fail('updated event should not be called');
+        var cdns = require('../../libs/dao/CDNDao')(mockDb);
+        cdns.on('ready', function (err) {
+            should.fail('ready event should not be called');
         });
         cdns.on('error', function (err) {
             should.exist(err);

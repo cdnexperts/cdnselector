@@ -7,34 +7,36 @@ var url = require('url'),
     iptrie = require('iptrie');
 
 function BaseCDN(id, config, distribs) {
+
     this.distribs = distribs;
     this.id = id;
     this.config = config;
     this.clientIpWhitelist = null;
 
-    var self = this;
 
-    var loadAllowedNetworksIntoTrie = function () {
-        if (self.config && self.config.allowedClientIPs) {
-            self.clientIpWhitelist = new iptrie.IPTrie();
+    // Load the whitelists into an IPtrie
+    var whitelistEntryCount = 0;
+    if (config && config.clientIpWhitelist) {
+        this.clientIpWhitelist = new iptrie.IPTrie();
 
-            for (var source in self.config.allowedClientIPs) {
-                self.config.allowedClientIPs[source].forEach(function (network) {
-                    try {
-                        self.clientIpWhitelist.add(network.network, network.prefix, source);
-                    } catch (e) {
-                        logger.error('Error in the ' + source + ' clientIpWhitelist for ' + self.id + ' : ' + e);
-                    }
-                });
+        for (var source in config.clientIpWhitelist) {
+            var whitelist = config.clientIpWhitelist[source];
+            for (var i = 0; i < whitelist.length; i++) {
+                try {
+                    var network = whitelist[i];
+                    this.clientIpWhitelist.add(network.network, network.prefix, source);
+                    whitelistEntryCount += 1;
+                } catch (e) {
+                    logger.error('Error in the ' + source + ' clientIpWhitelist for ' + id + ' : ' + e);
+                }
             };
+        };
+    }
 
-        } else {
-            // Setting to null to signal allow any client IP by default.
-            self.clientIpWhitelist = null;
-        }
-    };
-
-    loadAllowedNetworksIntoTrie();
+    // Only set the clientIpWhitelist property if there are entries in the whitelist
+    if (whitelistEntryCount === 0) {
+        this.clientIpWhitelist = null;
+    }
 }
 var proto = BaseCDN.prototype;
 
@@ -63,7 +65,7 @@ proto.selectSurrogate = function (clientRequest, callback) {
     }
 
     if (!provider) {
-        errorlog.info('Hostname ' + reqHost + ' does not have a distribution configured for this provider');
+        logger.info('Hostname ' + reqHost + ' does not have a distribution configured for this provider');
         callback(null, reqUrl, null, null, true);
     } else {
         // Strip off the inbound token from the URL if present
@@ -115,7 +117,7 @@ proto.generateTokenizedUrl = function (targetUrl, inboundTokenParams, provider) 
 };
 
 proto.isActive = function () {
-    return this.config.active;
+    return this.config.active ? true : false;
 };
 
 proto.isClientIpAllowed = function (ipAddress) {
@@ -127,7 +129,7 @@ proto.isClientIpAllowed = function (ipAddress) {
 };
 
 proto.toString = function () {
-    return this.id;
+    return this.id || 'Unknown CDN';
 };
 
 module.exports = BaseCDN;

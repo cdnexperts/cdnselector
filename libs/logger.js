@@ -15,6 +15,10 @@ winston.add(winston.transports.Console, {
     level: localConfig.logLevel,
     timestamp: true
 });
+winston.info(localConfig);
+if (localConfig.logLevel === 'debug') {
+    global.DEBUG = 'true';
+}
 
 // Access Log
 var requestLogger = new RequestLogger(localConfig.logRotationInterval, localConfig.logDir);

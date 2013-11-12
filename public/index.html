@@ -1,7 +1,6 @@
 
 <!DOCTYPE html>
 <html>
-
     <head>
         <title>CDN Selector Admin Console</title>
         <!-- Bootstrap -->
@@ -15,19 +14,15 @@
         <!--[if lt IE 9]>
             <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
         <![endif]-->
-        <!-- TODO concatenate all these libs into one file to speed up load times-->
-        <!-- Third party dependencies -->
         <script src="vendors/modernizr-2.6.2-respond-1.1.0.min.js"></script>
         <script src="vendors/jquery-1.9.1.min.js"></script>
         <script src="vendors/jquery-ui-1.10.3.js"></script>
         <script src="vendors/underscore-min.js"></script>
         <script src="vendors/backbone-min.js"></script>
+        <script src="vendors/validator-min.js"></script>
         <script src="bootstrap/js/bootstrap.min.js"></script>
         <script src="vendors/datatables/js/jquery.dataTables.min.js"></script>
         <script src="vendors/DT_bootstrap.js"></script>
-
-
-
     </head>
 
     <body>
@@ -40,15 +35,12 @@
                     </a>
                     <a class="brand" href="#">CDN Selector</a>
                     <div class="nav-collapse collapse">
-
                         <ul class="nav">
                             <li class="active">
                                 <a href="#">Dashboard</a>
                             </li>
-
                         </ul>
                     </div>
-                    <!--/.nav-collapse -->
                 </div>
             </div>
         </div>
@@ -60,16 +52,11 @@
                             <a href="#distributions"><i class="icon-chevron-right"></i> Distributions</a>
                         </li>
                         <li>
-                            <a href="#cdns"><i class="icon-chevron-right"></i> CDN Config</a>
-                        </li>
-                        <li>
-                            <a href="#operatorNetworks"><i class="icon-chevron-right"></i> Operator Networks</a>
+                            <a href="#cdns"><i class="icon-chevron-right"></i> CDN Configuration</a>
                         </li>
                     </ul>
                 </div>
-                <!--/span-->
-
-                <div >
+                <div>
                   <div id="successBox" class="span9 alert alert-success hide">
                         <button type="button" class="close" data-dismiss="alert">&times;</button>
                         <h4>Success</h4>
@@ -87,38 +74,30 @@
             <footer>
             </footer>
         </div>
-        <!--/.fluid-container-->
 
-       <script type="text/template" id="tplDistributionsTable">
-         <div class="row-fluid">
 
-            <!-- block -->
-            <div class="block" id="distributionsBlock">
-                <div class="navbar navbar-inner block-header">
-                    <div class="muted pull-left">Distributions</div>
+
+       <script type="text/template" id="tplDatatable">
+          <div class="row-fluid">
+            <div class="block">
+              <div class="navbar navbar-inner block-header">
+                  <div class="muted pull-left"><%= title %></div>
+              </div>
+              <div class="block-content collapse in">
+                  <a href="<%= createButtonHref %>" class="btn btn-primary" id="btnCreateDistribution"><%= createButtonLabel %></a>
+              </div>
+              <div class="block-content collapse in">
+                  <div class="span12" >
+                    <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="datatable">
+                     </table>
+                  </div>
                 </div>
-                <div class="block-content collapse in">
-                    <a href="#distribution/create" class="btn btn-primary" id="btnCreateDistribution">Create Distribution</a>
-                </div>
-                <div class="block-content collapse in" id="distributionsTabBlock">
-                    <div class="span12" >
-                      <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="distributionsTab">
-                            <thead>
-                                <tr>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                       </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+              </div>
+          </div>
         </script>
+
+
+
         <script type="text/template" id="tplDistributionsForm">
           <div id="distributionFormBlock" class="block">
             <div class="navbar navbar-inner block-header">
@@ -136,8 +115,6 @@
                                 <p class="help-block">a unique and easily recognisable name for this distribution</p>
                               </div>
                         </div>
-
-
                         <div class="control-group">
                           <label class="control-label" for="hostnames">Hostnames</label>
                           <div class="controls">
@@ -145,10 +122,8 @@
                             <p class="help-block">the hostname that will be used for this distribution. If you have multiple hostnames, put each on a new line.</p>
                           </div>
                         </div>
-
                         <h5>Token Authentication</h5>
                         <p>If you use token authentication with this distribution you must answer the following questions. The values should match exactly the corresponding configuration in the Velocix CDN.</p>
-
                         <div class="control-group">
                               <label class="control-label" for="authParam">Auth Parameter name</label>
                               <div class="controls">
@@ -176,15 +151,14 @@
                         <div class="control-group">
                             <div id="tabs">
                               <ul class="tabHeads">
-                                <li><a href="#velocix" id="velocixTabHead">Velocix</a></li>
-                                <li><a href="#amazon" id="amazonTabHead">Amazon Cloudfront</a></li>
-                                <li><a href="#generic" id="genericTabHead">Generic</a></li>
+                                <% _.each(providers, function(provider, index, list) { %>
+                                  <li><a href="#<%=provider.id %>" providerId="<%=provider.id %>" id="<%=provider.id %>TabHead"><%=provider.cdn.name %></a></li>
+                                <% }); %>
                               </ul>
 
                                 <% _.each(providers, function(provider, index, list) {
-
-                                      if (provider.id === 'cdns:cdn:velocix') { %>
-                                        <div id="velocix">
+                                      if (provider.cdn.driver === 'cdns:cdn:driver:velocix') { %>
+                                        <div id="<%=provider.id %>" class="tabBody">
                                           <div class="control-group">
                                             <label class="control-label" for="velocixActive">Enabled</label>
                                             <div class="controls">
@@ -197,8 +171,8 @@
                                             </div>
                                           </div>
                                         </div>
-                                      <% } else if (provider.id === 'cdns:cdn:amazon') { %>
-                                        <div id="amazon">
+                                      <% } else if (provider.cdn.driver === 'cdns:cdn:driver:amazon') { %>
+                                        <div id="<%=provider.id %>" class="tabBody">
                                           <div class="control-group">
                                             <label class="control-label" for="amazonEnabled">Enabled</label>
                                             <div class="controls">
@@ -233,8 +207,8 @@
                                             </div>
                                           </div>
                                         </div>
-                                      <%} else if (provider.id === 'cdns:cdn:generic') { %>
-                                        <div id="generic">
+                                      <%} else { %>
+                                        <div id="<%=provider.id %>" class="tabBody">
                                           <div class="control-group">
                                             <label class="control-label" for="genericActive">Enabled</label>
                                             <div class="controls">
@@ -249,14 +223,6 @@
                                                     <input class="input-xlarge focused" id="hostname" type="text" value="<%= provider.hostname %>"/>
                                                     <p class="help-block">the hostname that requests should be directed to on this CDN</p>
                                                   </div>
-                                                  <h5>About Generic CDN support</h5>
-                                                  <p>The Generic CDN configuration can be used to direct client requests to almost any CDN. It does not support authentication features such as tokens.</p>
-                                                  <p>Example uses are:</p>
-                                                  <ul>
-                                                    <li>Rackspace Cloudfiles (powered by Akamai) - simply provide your container&quot;s 'Public CDN' link (HTTP) from the Rackspace console.</li>
-                                                    <li>Other CDNs</li>
-                                                    <li>Direct to your Origin - as a backup option you might want to allow requests to be sent directly to your Origin servers.</li>
-                                                  </ul>
                                             </div>
                                           </div>
                                       <%}
@@ -272,37 +238,140 @@
             </div>
           </div>
         </script>
-        <script type="text/template" id="tplVelocixForm">
 
-        <div class="block" id="cdnsBlock">
+
+
+        <script type="text/template" id="tplCdnForm">
+          <div class="block">
             <div class="navbar navbar-inner block-header">
-                <div class="muted pull-left">Velocix Configuration</div>
+                <div class="muted pull-left"><%= typeof _id === 'undefined' ? 'Add' : 'Edit' %> CDN</div>
             </div>
-            <div class="block-content collapse in" id="velocixFormBlock">
-              <form class="form-horizontal" id="velocixForm">
-                  <fieldset>
-                      <div class="control-group">
-                            <label class="control-label" for="sscsUrl">Cache selection API URL (SSCSv2)</label>
-                            <div class="controls">
-                              <input class="input-xlarge focused" id="sscsUrl" type="text" placeholder="http://routing.velocix.com:8003/sscsv2" value="<%= sscsUrl %>"/>
-                              <p class="help-block">the URL of the Server Side Cache Selection (SSCSv2) on your Velocix CDN.</p>
+            <div class="block-content collapse in">
+                <form class="form-horizontal">
+                    <fieldset>
+                        <p>This screen can be used to specify the settings for a CDN.</p>
+                        <div class="control-group">
+                              <label class="control-label" for="name">Name</label>
+                              <div class="controls">
+                                <input class="input-xlarge focused" id="name" type="text" placeholder="New CDN" value="<%= name %>" <%= isNew ? '' : 'disabled' %>/>
+                                <p class="help-block">a unique and easily recognisable name for this CDN</p>
+                              </div>
+                        </div>
+                        <div class="control-group">
+                              <label class="control-label" for="driver">CDN Type</label>
+                              <div class="controls">
+                                <select class="input-xlarge focused" id="driver" <%= isNew ? '' : 'disabled' %>>
+                                  <option value="cdns:cdn:driver:generic" <%= driver === 'cdns:cdn:driver:generic' ? 'selected' : '' %>>Generic</options>
+                                  <option value="cdns:cdn:driver:akamai" <%= driver === 'cdns:cdn:driver:akamai' ? 'selected' : '' %>>Akamai</options>
+                                  <option value="cdns:cdn:driver:amazon" <%= driver === 'cdns:cdn:driver:amazon' ? 'selected' : '' %>>Amazon Cloudfront</options>
+                                  <option value="cdns:cdn:driver:velocix" <%= driver === 'cdns:cdn:driver:velocix' ? 'selected' : '' %>>Velocix</options>
+                                </select>
+                                <p class="help-block">Generic will work with most CDNs, but for advanced features like Authentication tokens you must select the type of CDN.</p>
+                              </div>
+                        </div>
+                        <div class="control-group hide" id="sscsGroup">
+                              <label class="control-label" for="name">Server-Side Cache Selection URL</label>
+                              <div class="controls">
+                                <input class="input-xlarge focused" id="sscsUrl" type="text" placeholder="http://router.cdn.operator.net:8003/sscsv2" value="<%= sscsUrl %>"/>
+                                <p class="help-block">if your Velocix CDN provides a SSCSv2 interface specify it here to allow requests to be routed directly to the most suitable cache.</p>
+                              </div>
+                        </div>
+
+                        <div class="control-group">
+                          <label class="control-label" for="active">Enabled</label>
+                          <div class="controls">
+                            <label class="uniform">
+                              <input class="uniform_on" type="checkbox" id="active" <%= active ? 'checked' : '' %>>
+                            </label>
+                          </div>
+                          <p class="help-block">Disabling a CDN will remove it from service for all Distributions. Use with care!</p>
+                        </div>
+                        <h5>Client IP Whitelist</h5>
+                        <p>You can provide a whitelist to ensure that only clients on certain networks are directed to this CDN. Clients accessing from IP addresses outside of this whitelist will be directed to an the next hightest-priority CDN.</p>
+                        <p>If you do not specify a whitelist, all client IPs will be allowed access to the CDN.</p>
+                        <div id="ipWhitelistTabs">
+                          <ul class="tabHeads">
+                            <li><a href="#manualWhitelistTab">Manual Whitelist</a></li>
+                            <li><a href="#altoWhitelistTab">ALTO managed Whitelist</a></li>
+                          </ul>
+                          <div id="manualWhitelistTab">
+                            <p>Provide a list of network ranges that should be allowed to use this CDN. </p>
+                            <div class="control-group">
+                              <label class="control-label" for="ipWhitelist">Allowed Network Ranges</label>
+                              <div class="controls">
+                                <textarea id="ipWhitelist" class="input-xlarge textarea" placeholder="0.0.0.0/0" style="width: 250px; height: 250px"><% _.each(clientIpWhitelist.manual, function(network) { console.log(network);%><%= network.network %>/<%= network.prefix %><%='\n' %><%}); %></textarea>
+                                <p class="help-block">Provide network ranges in CIDR notation, one per line. For example 192.168.2.0/24 for IPv4, or 2001:db8:1234:1::/64 for IPv6)</p>
+                              </div>
                             </div>
-                      </div>
-                      <div class="form-actions">
-                        <button class="btn btn-primary" id="btnSaveCdn">Save Changes</button>
-                      </div>
-                  </fieldset>
-              </form>
+                          </div>
+                          <div id="altoWhitelistTab">
+                            <p>You can provide details of an Application-Layer Traffic Optimization (ALTO) service to allow whitelist to be automatically populated with your client network IP ranges.</p>
+                            <p>All the network range addresses from your network map are merged with any addresses that you have specified in the Manual Whitelist. Overlapping network ranges are allowed.</p>
+                            <div class="control-group">
+                              <label class="control-label" for="enableAlto">Enable ALTO managed whitelist</label>
+                              <div class="controls">
+                                <label class="uniform">
+                                  <input class="uniform_on" type="checkbox" id="enableAlto" <%= enableAlto ? 'checked' : '' %>>
+                                </label>
+                              </div>
+                            </div>
+                            <div class="control-group">
+                              <label class="control-label" for="altoServiceUrl">ALTO service URL</label>
+                              <div class="controls">
+                                <input class="input-xlarge focused" id="altoServiceUrl" type="text" placeholder="http://alto.operator.net/directory" value="<%= altoService.altoServiceUrl %>"/>
+                                <p class="help-block">the URL of the ALTO service. This can either be the resource directory or a direct link to the network map.</p>
+                              </div>
+                            </div>
+                            <div class="control-group">
+                              <label class="control-label" for="refreshInterval">Refresh Interval</label>
+                              <div class="controls">
+                                <input class="input-xlarge focused" id="refreshInterval" type="text" placeholder="3600" value="<%= altoService.refreshInterval %>"/>
+                                <p class="help-block">how often to check ALTO for changes, in seconds.</p>
+                              </div>
+                            </div>
+                            <div class="control-group">
+                              <label class="control-label" for="ignorePids">PIDs to ignore</label>
+                              <div class="controls">
+                                <input class="input-xlarge focused" id="ignorePids" type="text" placeholder="default-pid,external-network-pid" value="<%= altoService.ignorePids.join(',') %>"/>
+                                <p class="help-block">all network ranges will be added to the whitelist. If there are any PIDs that should be ignored, specify them here separated by commas. Note that any 'catch-all' network ranges with a /0 prefix will be automatically ignored (such as 0.0.0.0/0 and ::0/0)</p>
+                              </div>
+                            </div>
+                            <div class="control-group">
+                              <label class="control-label" for="networkMapId">Network Map ID</label>
+                              <div class="controls">
+                                <input class="input-xlarge focused" id="networkMapId" type="text" placeholder="default-network-map" value="<%= altoService.networkMapId %>"/>
+                                <p class="help-block">If your ALTO service provides multiple network maps you can specify which one the CDN selector should use.</p>
+                              </div>
+                            </div>
+                            <% if (clientIpWhitelist && clientIpWhitelist.alto && clientIpWhitelist.alto.length > 0) { %>
+                              <div class="control-group">
+                                <label class="control-label" for="altoPreview">Imported network ranges</label>
+                                <div class="controls">
+                                  <textarea id="altoPreview" class="input-xlarge textarea" style="width: 250px; height: 250px" placeholder="No network ranges imported... check back later"disabled><% _.each(clientIpWhitelist.alto, function(network) { %><%= network.network %>/<%= network.prefix %><%='\n' %><%}); %></textarea>
+                                </div>
+                              </div>
+                            <% } %>
+                          </div>
+                        </div>
+                        <div class="form-actions">
+                          <button class="btn btn-primary" id="btnSaveCdn">Save</button>
+                        </div>
+                    </fieldset>
+                </form>
             </div>
           </div>
         </script>
-        <!-- our code -->
 
+
+
+        <script src="assets/Utils.js"></script>
         <script src="assets/CdnModel.js"></script>
         <script src="assets/DistributionModel.js"></script>
-        <script src="assets/CdnConfigView.js"></script>
-        <script src="assets/DistributionsView.js"></script>
         <script src="assets/DistributionFormView.js"></script>
+        <script src="assets/DistributionsView.js"></script>
+        <script src="assets/CdnsView.js"></script>
+        <script src="assets/CdnFormView.js"></script>
+
         <script src="assets/App.js"></script>
     </body>
 </html>

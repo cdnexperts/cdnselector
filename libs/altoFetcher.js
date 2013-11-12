@@ -30,10 +30,12 @@ dbHelper.connect(function (err, database) {
                 if (!cdnConfig.clientIpWhitelist) {
                     cdnConfig.clientIpWhitelist = {};
                 }
-                cdnConfig.clientIpWhitelist['alto'] = networkList;
-                if (cdnConfig.altoService) {
-                    cdnConfig.altoService.lastChanged = new Date().toISOString();
+                if (networkList) {
+                    cdnConfig.clientIpWhitelist['alto'] = networkList;
+                } else {
+                    delete cdnConfig.clientIpWhitelist['alto'];
                 }
+
                 cdnDao.save(cdnConfig, function (err) {
                     if (err) {
                         logger.error("Could not save Operator Ranges to database.", err);
@@ -55,6 +57,7 @@ dbHelper.connect(function (err, database) {
         // Create a client to handle this CDN
         var altoClient = new AltoClient(config, cdnId);
         altoClient.on('networkMapChanged', onNetworkMapChanged);
+        altoClient.on('error', onAltoError);
         altoClients[cdnId] = altoClient;
         logger.info('Created ALTO client for ' + cdnId);
     }
@@ -81,6 +84,7 @@ dbHelper.connect(function (err, database) {
             // the ALTO client for this CDN
             altoClient.stop();
             delete altoClients[cdnId];
+            onNetworkMapChanged([], cdnId);
             logger.info('Stopped ALTO monitoring for ' + cdnId);
             return;
         }

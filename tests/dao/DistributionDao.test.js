@@ -3,7 +3,7 @@
 "use strict";
 var should = require('should'),
     testUtil = require('../TestUtil'),
-    Distributions = require('../../libs/dao/Distributions');
+    Distributions = require('../../libs/dao/DistributionDao');
 
 
 
@@ -38,7 +38,7 @@ describe('Distributions', function () {
         };
 
         var distribs = new Distributions(mockDb);
-        distribs.on('updated', function (err) {
+        distribs.on('ready', function (err) {
             distribs.getByHostname('www.testhost.com').id.should.equal('a');
             distribs.getByHostname('cdn.testhost2.com').id.should.equal('b');
             should.not.exist(distribs.getByHostname('missing.testhost2.com'));
@@ -66,8 +66,8 @@ describe('Distributions', function () {
         };
 
         var distribs = new Distributions(mockDb);
-        distribs.on('updated', function () {
-            should.fail('updated event unexpected');
+        distribs.on('ready', function () {
+            should.fail('ready event unexpected');
         });
 
         distribs.on('error', function (err) {

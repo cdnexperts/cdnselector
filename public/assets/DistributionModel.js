@@ -4,7 +4,7 @@ var Distribution = Backbone.Model.extend({
 
     defaults: function() {
         return {
-            type: 'distribution',
+            type: 'cdns:distribution',
             hostnames: [],
             providers: [],
             authParam: '',
@@ -32,13 +32,13 @@ var Distribution = Backbone.Model.extend({
                 activeProviderFound = true;
 
                 // If cloudfront is enabled, a Hostname must be specified
-                if (provider.id === 'cdns:cdn:amazon' && _.isEmpty(provider.hostname)) {
-                    err = 'You must specify a hostname for Amazon Cloudfront (or otherwise disable it)';
+                if (provider.driver === 'cdns:cdn:driver:amazon' && _.isEmpty(provider.hostname)) {
+                    err = 'You must specify a hostname for ' + provider.name + ' (or otherwise disable it)';
                 }
 
                 // If generic is enabled, a hostname must be specified
-                if (provider.id === 'cdns:cdn:generic' && _.isEmpty(provider.hostname)) {
-                    err = 'You must specify a hostname for the Generic CDN (or otherwise disable it)';
+                if (provider.driver === 'cdns:cdn:driver:generic' && _.isEmpty(provider.hostname)) {
+                    err = 'You must specify a hostname for the ' + provider.name + ' (or otherwise disable it)';
                 }
             }
         });

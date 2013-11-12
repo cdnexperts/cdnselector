@@ -39,10 +39,12 @@ var dbDocs = {
        "providers": [
            {
                "id": "cdns:cdn:velocix",
+               "driver": "cdns:cdn:driver:velocix",
                "active": true
            },
            {
                "id": "cdns:cdn:amazon",
+               "driver": "cdns:cdn:driver:amazon",
                "active": true,
                "hostname": "d1ow0xdh6qh3nq.cloudfront.net",
                "signedUrl": {
@@ -52,6 +54,7 @@ var dbDocs = {
            },
            {
                "id": "cdns:cdn:generic",
+               "driver": "cdns:cdn:driver:generic",
                "active": true,
                "hostname": "66c31a5db47d96799134-07d0dcfc87cc7f17a619f7b9e538157a.r2.cf3.rackcdn.com"
            }
