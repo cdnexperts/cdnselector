@@ -115,6 +115,10 @@ if (cluster.isMaster) {
 
             httpServer = new HttpServer(localConfig.port, cdnSelector, loggers.accesslog);
             httpServer.on('ready', function () {
+                var uid = parseInt(process.env.SUDO_UID);
+                if (uid) {
+                    process.setuid(uid);
+                }
                 loggers.errorlog.info('Worker process ' + process.pid + ' started');
             });
             httpServer.start();

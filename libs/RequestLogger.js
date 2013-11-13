@@ -19,50 +19,53 @@ function RequestLogger(rotationInterval, directory) {
                 '.p' + process.pid +
                 '.cdns.access.log');
         },
-        createFile = function () {
-            var filename = getFilename(),
-                header =
-                    '#Version: 1.0\n' +
-                    '#Fields: date time c-ip s-dns x-proto s-parser cs-resource ' +
-                        's-resource sc-response-code sc-response x-preferred-cdn x-cdn ' +
-                        'x-location cs-user-agent s-ip c-port\n' +
-                    '#Software: ' + global.appVersionString + '\n' +
-                    '#Start-Date: ' + moment().utc().format('YYYY-MM-DD HH:mm:ss') + '\n';
-
-
-            fs.appendFile(filename, header, function (err) {
-                if (err) {
-                    if (err.code === 'ENOENT') {
-                        fs.mkdir(directory, function (err) {
-                            if (!err) {
-                                createFile();
-                            } else {
-                                errorlog.error("Cannot create log directory : " + err);
-                            }
-                        });
-                    } else {
-                        errorlog.error("Cannot create request log : " + err);
-                    }
-                } else {
-                    self.requestCount = 0;
-                    self.currentFile = filename;
-                    errorlog.info('Created new request log: ' + filename);
-                }
-            });
-        },
         rotateLogs = function () {
             self.closeFile();
             createFile();
-        },
-        scheduleRotation = function () {
-            setInterval(rotateLogs, rotationIntervalSeconds * 1000);
         };
     // End private functions
 
     // Protected
+    self.isOpen = false;
     self.currentFile = getFilename();
     self.requestCount = 0;
     self.hostname = os.hostname();
+
+    self.createFile = function () {
+        var filename = getFilename(),
+            header =
+                '#Version: 1.0\n' +
+                '#Fields: date time c-ip s-dns x-proto s-parser cs-resource ' +
+                    's-resource sc-response-code sc-response x-preferred-cdn x-cdn ' +
+                    'x-location cs-user-agent s-ip c-port\n' +
+                '#Software: ' + global.appVersionString + '\n' +
+                '#Start-Date: ' + moment().utc().format('YYYY-MM-DD HH:mm:ss') + '\n';
+
+
+        fs.appendFile(filename, header, function (err) {
+            if (err) {
+                if (err.code === 'ENOENT') {
+                    fs.mkdir(directory, function (err) {
+                        if (!err) {
+                            createFile();
+                        } else {
+                            errorlog.error("Cannot create log directory : " + err);
+                        }
+                    });
+                } else {
+                    errorlog.error("Cannot create request log : " + err);
+                }
+            } else {
+                self.requestCount = 0;
+                self.currentFile = filename;
+                errorlog.info('Created new request log: ' + filename);
+            }
+        });
+    };
+
+    self.scheduleRotation = function () {
+        setInterval(rotateLogs, rotationIntervalSeconds * 1000);
+    };
 
     self.closeFile = function (sync) {
         var footer =
@@ -90,12 +93,17 @@ function RequestLogger(rotationInterval, directory) {
     };
     // End Protected
 
-    // Create the first log and start regular rotation
-    createFile();
-    scheduleRotation();
+
 
 }
 var proto = RequestLogger.prototype;
+
+proto.open = function() {
+    // Create the first log and start regular rotation
+    this.createFile();
+    this.scheduleRotation();
+    this.isOpen = true;
+};
 
 proto.log = function (xProto, cIp, csResource, sResource, scResponseCode, scResponse, preferredCdn, location, csUserAgent, sIp, cPort) {
     var self = this,
@@ -103,6 +111,9 @@ proto.log = function (xProto, cIp, csResource, sResource, scResponseCode, scResp
         fillBlank = function (value) {
             return value || '-';
         };
+    if (!self.isOpen) {
+        self.open();
+    }
 
     if (self.currentFile !== undefined) {
 
@@ -135,7 +146,9 @@ proto.log = function (xProto, cIp, csResource, sResource, scResponseCode, scResp
 };
 
 proto.close = function () {
-    this.closeFile(true);
+    if (this.isOpen) {
+        this.closeFile(true);
+    }
 };
 
 module.exports = RequestLogger;
