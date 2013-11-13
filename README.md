@@ -22,50 +22,55 @@ Features that may appear in future releases include:
 * Device based CDN selection, where the type of client device can be used to determine which CDN to use.
 * Improved network location based routing policies using public databases to identify ISPs.
 
-See the full feature backlog at:
+See the [feature backlog](https://github.com/tonyshearer/cdnselector/issues?labels=feature&page=1&state=open) for more details.
 
 ## Quick start
+This will get you up and running in an environment suitable for development and testing. 
 
-###Prerequisites
+The instructions here are for CentOS, but can quite easily be adapted for other OSes.
+
 You will need:
 * Any operating system capable of running Node.js and CouchDB (Windows, Linux, OS X, etc). In these instructions we'll use CentOS 6.
 * Node.js (0.10.15 or later) - http://nodejs.org/download/
 * CouchDB (1.3.0 or later) - http://couchdb.apache.org/
 * Git
 
+####Install Node.js from the EPEL repository
+Or alternatively, get it from here: http://nodejs.org/download/.
 
-### Quickstart:
-This will get you up and running in an environment suitable for testing. For production use, be sure to read the notes below on securing the database.
-
-The instructions here are for CentOS, but can quite easily be adapted for other OSes
-
-Install Node.js from the EPEL repository (alternatively, get it from here: http://nodejs.org/download/)
-```curl -O http://download-i2.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+```
+curl -O http://download-i2.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
 sudo rpm -ivh epel-release-6-8.noarch.rpm
 sudo yum install npm --enablerepo=epel
+```
 
-Install and start couchDB:
-For Mac OS X and Windows you can download binaries from http://couchdb.apache.org/. For Linux you'll need to build from source, which we can simplify using the `build-couchdb` script:
+####Install and start couchDB:
+For Mac OS X and Windows you can download binaries from http://couchdb.apache.org/. For Linux you might be able to use your package manager to install, but be aware that the version of CouchDB in the RedHat EPEL repository seems to be hoplelessly broken. The best approach on Centos is to build from source, which we can simplify using the `build-couchdb` script:
 
-```sudo yum install gcc gcc-c++ make libtool zlib-devel openssl-devel rubygem-rake ruby-rdoc texinfo help2man ed
+```
+sudo yum install gcc gcc-c++ make libtool zlib-devel openssl-devel rubygem-rake ruby-rdoc texinfo help2man ed icu
 git clone git://github.com/iriscouch/build-couchdb
 cd build-couchdb
 git submodule init
 git submodule update
 rake
 ```
+When building on Centos 6, if you get an error shortly after the line `Attempting to backport macro.py to old Python. Wish me luck.`, take a look at this thread for the solution: https://github.com/iriscouch/build-couchdb/issues/81.
 
-Clone the repo and download dependencies:
-```git clone https://github.com/cdnexperts/cdnselector.git
+####Clone the repo and download dependencies
+```
+git clone https://github.com/cdnexperts/cdnselector.git
 cd cdnselector
 npm install
 ```
 
-Start the apps. Note that there are 2 processes - the `cdns-backend.js` which takes care of the Admin console and other backend services. Then there's the `cdns-frontend.js` which handles requests from end-users. These are seperate because a typical deployment would consist of many cdn-frontend instances, with only 1 or 2 cdns-backends to manage the service.
+####Start the apps
+Note that there are 2 processes - the `cdns-backend.js` which takes care of the Admin console and other backend services. Then there's the `cdns-frontend.js` which handles requests from end-users. These are seperate because a typical deployment would consist of many cdn-frontend instances, with only 1 or 2 cdns-backends to manage the service.
 
-```node cdns-backend.js &
-node cdns-frontend.js &```
-
+```
+node cdns-backend.js &
+node cdns-frontend.js &
+```
 
 The admin console can then be accessed in your browser at http://localhost:3000/ (replacing localhost with your server's hostname or IP if necessary).
 
@@ -80,52 +85,34 @@ End-users can access the service on port 8888, but see below for instructions on
 ## Starting and stopping services
 In a production environment it is recommended that you use a script such as forever to start, monitor and stop the cdns-*.js services. To install forever:
 
-```npm install -G forever
+```
+npm install -G forever
 ```
 
 To start CDNS (assuming you want both the front-end and back-end running on this server):
-```forever start cdns-frontend.js
+```
+forever start cdns-frontend.js
 forever start cdns-backend.js
 ```
 
 To monitor, use `forever list`:
-```info:    Forever processes running
+```
+info:    Forever processes running
 data:        uid  command             script           forever pid   logfile                       uptime
 data:    [0] lTyh /usr/local/bin/node cdns-frontend.js 73295   73296 /Users/tony/.forever/lTyh.log 0:0:0:38.36
 data:    [1] P1ev /usr/local/bin/node cdns-backend.js  73303   73304 /Users/tony/.forever/P1ev.log 0:0:0:3.522
 ```
 
 To stop, use `forever stopall`:
-```info:    Forever stopped processes:
+```
+info:    Forever stopped processes:
 data:        uid  command             script           forever pid   logfile                       uptime
 data:    [0] lTyh /usr/local/bin/node cdns-frontend.js 73295   73296 /Users/tony/.forever/lTyh.log 0:0:4:5.725
 data:    [1] P1ev /usr/local/bin/node cdns-backend.js  73303   73304 /Users/tony/.forever/P1ev.log 0:0:3:31.212
 ```
 
 ## Binding to port 80
-The application listens for connections on the following ports, so you will need to ensure that any firewalls are configured accordingly:
 
-Inbound connections
-8888/tcp    HTTP connections from end-user clients. You might want to redirect these via port 80 (see below)
-5984/tcp    Private HTTP to the control server (CouchDB). Connectivity needed between the frontend application and this port.
-
-
-By convention most HTTP servers listen on port 80. However, it is not possible to bind to this port whilst running as a non-root user, so the application is configured to run on port 8888 by default.
-
-One solution is to configure iptables to forward all traffic on port 80 to port 8888. This can be achieved using a firewall rule like this:
-
-```iptables -A INPUT -i eth1 -p tcp --dport 80 -j ACCEPT
-iptables -A INPUT -i eth1 -p tcp --dport 8888 -j ACCEPT
-iptables -A INPUT -i eth1 -p tcp --dport 5984 -j ACCEPT
-iptables -A INPUT -i eth1 -p tcp --dport 3000 -j ACCEPT
-
-iptables -A PREROUTING -t nat -i eth1 -p tcp --dport 80 -j REDIRECT --to-port 8888
-```
-Be sure to set the correct interface (eth0 or eth1?) for your environment.
-
-You might also need to enable forwarding:
-
-sysctl net.ipv4.conf.eth0.forwarding=1
 
 
 # Database Security
