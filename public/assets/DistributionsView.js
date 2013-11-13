@@ -91,14 +91,12 @@ var DistributionsView = Backbone.View.extend({
                 var cdnList = '<ol>';
                 for (var i = 0; i < aData.providers.length; i++) {
                     if (aData.providers[i].active) {
-                        var providerName = aData.providers[i].id;
                         if (cdnCollection) {
                             var cdn = cdnCollection.get(aData.providers[i].id);
                             if (cdn) {
-                                providerName = cdn.get('name');
+                                cdnList += '<li>' + cdn.get('name') + '</li>';
                             }
                         }
-                        cdnList += '<li>' + providerName + '</li>';
                     }
                 }
                 cdnList += '</ol>'

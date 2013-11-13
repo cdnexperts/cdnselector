@@ -152,12 +152,12 @@
                             <div id="tabs">
                               <ul class="tabHeads">
                                 <% _.each(providers, function(provider, index, list) { %>
-                                  <li><a href="#<%=provider.id %>" providerId="<%=provider.id %>" id="<%=provider.id %>TabHead"><%=provider.cdn.name %></a></li>
+                                  <li><a href="#<%=provider.id %>" providerId="<%=provider.id %>" id="<%=provider.id %>TabHead"><%= provider.cdn ? provider.cdn.name : provider.id %></a></li>
                                 <% }); %>
                               </ul>
 
                                 <% _.each(providers, function(provider, index, list) {
-                                      if (provider.cdn.driver === 'cdns:cdn:driver:velocix') { %>
+                                      if (provider.cdn && provider.cdn.driver === 'cdns:cdn:driver:velocix') { %>
                                         <div id="<%=provider.id %>" class="tabBody">
                                           <div class="control-group">
                                             <label class="control-label" for="velocixActive">Enabled</label>
@@ -171,7 +171,7 @@
                                             </div>
                                           </div>
                                         </div>
-                                      <% } else if (provider.cdn.driver === 'cdns:cdn:driver:amazon') { %>
+                                      <% } else if (provider.cdn && provider.cdn.driver === 'cdns:cdn:driver:amazon') { %>
                                         <div id="<%=provider.id %>" class="tabBody">
                                           <div class="control-group">
                                             <label class="control-label" for="amazonEnabled">Enabled</label>

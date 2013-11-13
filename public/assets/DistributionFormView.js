@@ -41,8 +41,22 @@ var DistributionFormView = Backbone.View.extend({
 
             }
         });
+
+        // Filter out any providers that do not have CDNs. These are probably
+        // orphaned providers who have had their CDNs deleted.
+        var filteredProviders = [];
+        for (var i = 0; i < templateParams.providers.length; i++) {
+            var provider = templateParams.providers[i];
+            if (provider.cdn) {
+                filteredProviders.push(provider);
+            }
+        };
+        templateParams.providers = filteredProviders;
+
+        // Render the template
         this.$el.html(this.template(templateParams));
 
+        // Apply the jQuery tabs
         this.renderTabs();
         return this;
     },

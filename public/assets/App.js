@@ -50,7 +50,6 @@ $(function() {
 
         },
         cdns: function() {
-            console.log('CDN LIST');
             this.loadView(new CdnsView({
                 collection: cdns
             }));
