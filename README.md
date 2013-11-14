@@ -2,7 +2,7 @@
 
 CDN Selector allows you to optimize the online delivery of video and other content using multiple CDNs.
 
-CDN selection policies can be defined for each service to allow:
+Policies can be defined for each service to allow:
 
 * CDN selection based on the client's network location (e.g, direct on-net clients to your in-house CDN, and all others to a global CDN provider such as Akamai)
 * Integration with CDN routing engines to provide the client with direct access to the most suitable CDN cache. This increases performance for the client by avoiding a DNS lookup or HTTP redirection via the routing engine.
