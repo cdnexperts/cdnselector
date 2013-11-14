@@ -12,5 +12,5 @@ module.exports = {
     consolePort: process.env.CDNS_CONSOLE_PORT || 3000,
     logLevel: process.env.CDNS_LOG_LEVEL || 'info',
     logDir: process.env.CDNS_LOG_DIR || 'log',
-    logRotationInterval: process.env.CDNS_LOG_ROTATION_INTERVAL || 60
+    logRotationInterval: process.env.CDNS_LOG_ROTATION_INTERVAL || 3600
 };
