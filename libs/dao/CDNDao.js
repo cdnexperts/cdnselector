@@ -58,11 +58,18 @@ var dbDocs = {
         "defaultOrder": 1,
         "active": true
     },
+    "cdns:cdn:akamai": {
+        "name": "Akamai",
+        "driver": "cdns:cdn:driver:generic",
+        "type": "cdns:cdn",
+        "defaultOrder": 2,
+        "active": true
+    },
     "cdns:cdn:generic": {
         "name": "Generic",
         "driver": "cdns:cdn:driver:generic",
         "type": "cdns:cdn",
-        "defaultOrder": 2,
+        "defaultOrder": 3,
         "active": true
     }
 };

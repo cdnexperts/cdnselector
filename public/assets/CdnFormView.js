@@ -19,7 +19,6 @@ var CdnFormView = Backbone.View.extend({
     close: function() {
         this.model.off('invalid', this.renderError, this);
         this.remove();
-        console.log('Removed CDNFormView');
     },
 
     render: function() {
@@ -42,7 +41,6 @@ var CdnFormView = Backbone.View.extend({
                                                     ignorePids: [],
                                                     networkMapId: null};
         params.clientIpWhitelist = params.clientIpWhitelist || { manual: [] };
-
 
 
         this.$el.html(this.template(params));
