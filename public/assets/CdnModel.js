@@ -4,6 +4,7 @@ var CDN = Backbone.Model.extend({
 
     defaults: function() {
         return {
+            name: '',
             type: 'cdns:cdn',
             driver: 'cdns:cdn:driver:generic',
             active: true
