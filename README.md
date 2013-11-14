@@ -206,6 +206,7 @@ See the project wiki at : https://github.com/tonyshearer/cdnselector/wiki
 * Made the project generic for open source release.
 * Split the application into 2: a front-end and a back-end process. ALTO fetching and the Admin GUI moved into the backend process.
 * The list of Operator's IP ranges is now expressed as an 'IP Whitelist', which is associated with each CDN.
+* Model updated to allow use case where there are multiple on-net CDNs, each with their own ALTO service and Server-Side request router.
 * The IP whitelist can be populated from the Admin GUI, ALTO or both
 * Retired the config.js file. All configuration has moved into the admin GUI, or using environment variables.
 
