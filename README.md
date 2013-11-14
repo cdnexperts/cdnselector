@@ -198,7 +198,7 @@ sudo CDNS_PORT=80 node cdns-frontend.js
 All worker processes will run as the unprivliged user. However, the master process which is responsible for respawning workers will continue to operate as root.
 
 # More documentation
-See the project wiki at : https://github.com/tonyshearer/cdnselector/wiki
+See the project wiki at : https://github.com/cdnexperts/cdnselector/wiki
 
 # Changelog
 
