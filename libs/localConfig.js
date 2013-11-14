@@ -2,8 +2,8 @@
 "use strict";
 
 // Version Control
-global.appName = 'vxcdns';
-global.appVersionString = 'vx-cdns-0.3.0';
+global.appName = 'cdns';
+global.appVersionString = 'cdns-0.3.0';
 global.appVersionNum = 3;
 
 module.exports = {
