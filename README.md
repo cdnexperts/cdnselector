@@ -64,7 +64,6 @@ sudo ln -s /usr/local/etc/logrotate.d/couchdb /etc/logrotate.d/couchdb
 sudo ln -s /usr/local/etc/init.d/couchdb  /etc/init.d
 sudo update-rc.d couchdb defaults
 sudo useradd -d /usr/local/var/lib/couchdb couchdb
-sudo chown -R couchdb: /usr/local/var/lib/couchdb /usr/local/var/run/couchdb /usr/local/var/log/couchdb
 sudo sed -i '/^\[admins\]$/a admin = cdnsadmin'  /usr/local/etc/couchdb/local.ini
 ```
 You can change the admin password for the database if necessary (cdnsadmin) using that last command, but you will need to make sure that you make the corresponding change in the CDNS config (we'll get to that shortly).
@@ -75,16 +74,17 @@ If you want to get access to the CouchDB server from anywhere other than localho
 sudo sed -i '/^\[httpd\]$/a bind_address = 0.0.0.0'  /usr/local/etc/couchdb/local.ini
 ```
 
-Finally, start couchdb using the command:
+Finally, correct some permissions and start couchdb using the command:
 
 ```
+sudo chown -R couchdb: /usr/local/var/lib/couchdb /usr/local/var/run/couchdb /usr/local/var/log/couchdb
 sudo service couchdb start
 ```
 
 If you want a quick and easy way to get running with CouchDB, you could also try the free hosted service at http://www.iriscouch.com/.
 
 
-####3) Clone the repo and download dependencies
+####3) Clone the CDN Selector repo and download Javascript dependencies. The application uses the Node Package Manager (npm) to automatically download the required Open Source Javascript libraries.
 ```
 git clone https://github.com/cdnexperts/cdnselector.git
 cd cdnselector
