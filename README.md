@@ -35,7 +35,7 @@ You will need:
 * CouchDB (1.3.0 or later) - http://couchdb.apache.org/
 * Git
 
-####Install Node.js from the EPEL repository
+####1) Install Node.js from the EPEL repository
 Or alternatively, get it from here: http://nodejs.org/download/.
 
 ```
@@ -44,7 +44,7 @@ sudo rpm -ivh epel-release-6-8.noarch.rpm
 sudo yum install npm --enablerepo=epel
 ```
 
-####Install and start couchDB:
+####2) Install and start CouchDB:
 For Mac OS X and Windows you can download binaries from http://couchdb.apache.org/. For Linux you might be able to use your package manager to install, but be aware that the version of CouchDB in the RedHat EPEL repository seems to be hoplelessly broken. The best approach on Centos is to build from source, which we can simplify using the `build-couchdb` script:
 
 ```
@@ -58,14 +58,14 @@ cd ..
 ```
 When building on Centos 6, if you get an error shortly after the line `Attempting to backport macro.py to old Python. Wish me luck.`, take a look at this thread for the solution: https://github.com/iriscouch/build-couchdb/issues/81.
 
-####Clone the repo and download dependencies
+####3) Clone the repo and download dependencies
 ```
 git clone https://github.com/cdnexperts/cdnselector.git
 cd cdnselector
 npm install
 ```
 
-####Start the apps
+####4) Start the CDNS processes
 Note that there are 2 processes - the `cdns-backend.js` which takes care of the Admin console and other backend services. Then there's the `cdns-frontend.js` which handles requests from end-users. These are seperate because a typical deployment would consist of many cdn-frontend instances, with only 1 or 2 cdns-backends to manage the service.
 
 ```
@@ -92,9 +92,8 @@ It is optional whether you set these environment variables. If unset, then the d
 | CDNS_LOG_ROTATION_INTERVAL | How frequently (in seconds) to open a new request log file. | 3600 |
 
 
-# Logging
 
-# Operations
+#Operations
 
 ## Starting and stopping services
 In a production environment it is recommended that you use a script such as forever to start, monitor and stop the cdns-*.js services. To install forever:
@@ -163,11 +162,6 @@ sudo CDNS_PORT=80 node cdns-frontend.js
 ```
 All worker processes will run as the unprivliged user. However, the master process which is responsible for respawning workers will continue to operate as root.
 
-
-
-# Database Security
-
-# Scaling
 
 # Changelog
 
