@@ -185,7 +185,9 @@ Be sure to set the correct interface (eth0 or eth1?) for your environment.
 
 You might also need to enable forwarding:
 
+```
 sysctl net.ipv4.conf.eth0.forwarding=1
+```
 
 #### Alternative solution
 You can now start the application as root using sudo and have it setuid to an unprivliged user:
@@ -195,6 +197,8 @@ sudo CDNS_PORT=80 node cdns-frontend.js
 ```
 All worker processes will run as the unprivliged user. However, the master process which is responsible for respawning workers will continue to operate as root.
 
+# More documentation
+See the project wiki at : https://github.com/tonyshearer/cdnselector/wiki
 
 # Changelog
 
