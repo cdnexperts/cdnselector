@@ -132,7 +132,7 @@ It is optional whether you set these environment variables. If unset, then the d
 In a production environment it is recommended that you use a script such as forever to start, monitor and stop the cdns-*.js services. To install forever:
 
 ```
-npm install -G forever
+sudo npm install -g forever
 ```
 
 To start CDNS (assuming you want both the front-end and back-end running on this server):
