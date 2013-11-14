@@ -67,7 +67,7 @@ sudo useradd -d /usr/local/var/lib/couchdb couchdb
 sudo chown -R couchdb: /usr/local/var/lib/couchdb /usr/local/var/run/couchdb /usr/local/var/log/couchdb
 sudo sed -i '/^\[admins\]$/a admin = cdnsadmin'  /usr/local/etc/couchdb/local.ini
 ```
-You can change the admin password for the database if necessary, but you will need to make sure that you make the corresponding change in the CDNS config (we'll get to that shortly).
+You can change the admin password for the database if necessary (cdnsadmin) using that last command, but you will need to make sure that you make the corresponding change in the CDNS config (we'll get to that shortly).
 
 If you want to get access to the CouchDB server from anywhere other than localhost (such as for troubleshooting or a distributed deployment), you should also run the command:
 
