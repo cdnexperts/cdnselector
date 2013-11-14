@@ -27,36 +27,62 @@ See the [feature backlog](https://github.com/tonyshearer/cdnselector/issues?labe
 ## Quick start
 This will get you up and running in an environment suitable for development and testing. 
 
-The instructions here are for CentOS, but can quite easily be adapted for other OSes.
+The instructions here are for Ubuntu 12.4, but can quite easily be adapted for other OSes.
 
 You will need:
-* Any operating system capable of running Node.js and CouchDB (Windows, Linux, OS X, etc). In these instructions we'll use CentOS 6.
+* Any operating system capable of running Node.js and CouchDB (Windows, Linux, OS X, etc).
 * Node.js (0.10.15 or later) - http://nodejs.org/download/
 * CouchDB (1.3.0 or later) - http://couchdb.apache.org/
 * Git
 
-####1) Install Node.js from the EPEL repository
+####1) Install Node.js 
 Or alternatively, get it from here: http://nodejs.org/download/.
 
 ```
-curl -O http://download-i2.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
-sudo rpm -ivh epel-release-6-8.noarch.rpm
-sudo yum install npm --enablerepo=epel
+sudo apt-get install build-essential
+curl http://nodejs.org/dist/node-latest.tar.gz | tar zxvf -
+cd node-*
+./configure
+make
+sudo make install
+node -v
+cd ..
 ```
 
 ####2) Install and start CouchDB:
-For Mac OS X and Windows you can download binaries from http://couchdb.apache.org/. For Linux you might be able to use your package manager to install, but be aware that the version of CouchDB in the RedHat EPEL repository seems to be hoplelessly broken. The best approach on Centos is to build from source, which we can simplify using the `build-couchdb` script:
+For Mac OS X and Windows you can download binaries from http://couchdb.apache.org/. For Linux your best option is usually to download and build from source:
 
 ```
-sudo yum install gcc gcc-c++ make libtool zlib-devel openssl-devel rubygem-rake ruby-rdoc texinfo help2man ed icu
-git clone git://github.com/iriscouch/build-couchdb
-cd build-couchdb
-git submodule init
-git submodule update
-rake
+sudo apt-get install -y g++ erlang-dev erlang-manpages erlang-base-hipe erlang-eunit erlang-nox erlang-xmerl erlang-inets libmozjs185-dev libicu-dev libcurl4-gnutls-dev libtool
+curl http://www.mirrorservice.org/sites/ftp.apache.org/couchdb/source/1.5.0/apache-couchdb-1.5.0.tar.gz | tar zxvf -
+cd apache-couchdb-*
+./configure
+make
+sudo make install
 cd ..
+sudo ln -s /usr/local/etc/logrotate.d/couchdb /etc/logrotate.d/couchdb
+sudo ln -s /usr/local/etc/init.d/couchdb  /etc/init.d
+sudo update-rc.d couchdb defaults
+sudo useradd -d /usr/local/var/lib/couchdb couchdb
+sudo chown -R couchdb: /usr/local/var/lib/couchdb /usr/local/var/run/couchdb /usr/local/var/log/couchdb
+sudo sed -i '/^\[admins\]$/a admin = cdnsadmin'  /usr/local/etc/couchdb/local.ini
 ```
-When building on Centos 6, if you get an error shortly after the line `Attempting to backport macro.py to old Python. Wish me luck.`, take a look at this thread for the solution: https://github.com/iriscouch/build-couchdb/issues/81.
+You can change the admin password for the database if necessary, but you will need to make sure that you make the corresponding change in the CDNS config (we'll get to that shortly).
+
+If you want to get access to the CouchDB server from anywhere other than localhost (such as for troubleshooting or a distributed deployment), you should also run the command:
+
+```
+sudo sed -i '/^\[httpd\]$/a bind_address = 0.0.0.0'  /usr/local/etc/couchdb/local.ini
+```
+
+Finally, start couchdb using the command:
+
+```
+sudo service couchdb start
+```
+
+If you want a quick and easy way to get running with CouchDB, you could also try the free hosted service at http://www.iriscouch.com/.
+
 
 ####3) Clone the repo and download dependencies
 ```
@@ -76,6 +102,13 @@ node cdns-frontend.js &
 The admin console can then be accessed in your browser at http://localhost:3000/ (replacing localhost with your server's hostname or IP if necessary).
 
 End-users can access the service on port 8888, but see below for instructions on how to use port 80 instead.
+
+If you would like to alter any of the default settings, such as the database connection details (did you change the DB admin password in step 2?) then you can do this by setting environment variables. For example, to set the database URL & login:
+
+```
+CDNS_DB_URL=http://admin:newpassword@localhost:5984/cdns node cdns-frontend.js
+```
+If you have a few settings you can include these in a shell script. The full set of environment variables are listed below. 
 
 # Configuration
 Most of the configuration of CDNS takes place centrally in the admin console. However, there are a few deployment settings that are configured on a server-by-server basis using environment variables.
