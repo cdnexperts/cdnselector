@@ -2,7 +2,7 @@
 
 CDN Selector allows you to optimize the online delivery of video and other content using multiple CDNs.
 
-Routing policies can be defined for each service to allow:
+CDN selection policies can be defined for each service to allow:
 
 * CDN selection based on the client's network location (e.g, direct on-net clients to your in-house CDN, and all others to a global CDN provider such as Akamai)
 * Integration with CDN routing engines to provide the client with direct access to the most suitable CDN cache. This increases performance for the client by avoiding a DNS lookup or HTTP redirection via the routing engine.
@@ -54,6 +54,7 @@ cd build-couchdb
 git submodule init
 git submodule update
 rake
+cd ..
 ```
 When building on Centos 6, if you get an error shortly after the line `Attempting to backport macro.py to old Python. Wish me luck.`, take a look at this thread for the solution: https://github.com/iriscouch/build-couchdb/issues/81.
 
@@ -77,6 +78,19 @@ The admin console can then be accessed in your browser at http://localhost:3000/
 End-users can access the service on port 8888, but see below for instructions on how to use port 80 instead.
 
 # Configuration
+Most of the configuration of CDNS takes place centrally in the admin console. However, there are a few deployment settings that are configured on a server-by-server basis using environment variables.
+
+It is optional whether you set these environment variables. If unset, then the default values will be used.
+
+| Environment Variable       | Description | Default Value |
+|----------------------------|-------------|---------------|  
+| CDNS_DB_URL                | The URL used to connect to the database, including username and password. | http://admin:cdnsadmin@localhost:5984 |
+| CDNS_PORT                  | The port used by cdns-frontend to receive requests from end users. Note that on most Linux platforms if you set this to less than 1024 you will need to start the app as root using sudo (it will setuid back to the original user after binding to the port). | 8888 |
+| CDNS_CONSOLE_PORT          | The port used by cdns-backend to serve the admin console | 3000 |
+| CDNS_LOG_LEVEL             | The level of operations log verbosity. Possible values are `error`, `warn`, `info`, `debug`. | info |
+| CDNS_LOG_DIR               | The directory to write request logs to. This is only for request logs - operational logging is always direct to STDOUT | log |
+| CDNS_LOG_ROTATION_INTERVAL | How frequently (in seconds) to open a new request log file. | 3600 |
+
 
 # Logging
 
@@ -111,7 +125,43 @@ data:    [0] lTyh /usr/local/bin/node cdns-frontend.js 73295   73296 /Users/tony
 data:    [1] P1ev /usr/local/bin/node cdns-backend.js  73303   73304 /Users/tony/.forever/P1ev.log 0:0:3:31.212
 ```
 
-## Binding to port 80
+## Port usage & firewall Rules
+
+The application listens for connections on the following ports by default, so you will need to ensure that any firewalls are configured accordingly:
+
+Inbound connections:
+
+|Port|Description|
+|---|---|
+|8888/tcp |	HTTP connections from end-user clients. You might want to redirect these via port 80 (see below) |
+|3000/tcp | HTTP connections to the admin console |
+|5984/tcp	| Private HTTP to the database server (CouchDB). If you are running everything on the same server you can leave this port closed and use the loopback interface. Otherwise you should probably restrict access only to the servers running cdns-frontend and cdns-backend |
+
+### Binding to port 80
+By convention most HTTP servers listen on port 80. However, it is not possible to bind to this port whilst running as a non-root user, so the application is configured to run on port 8888 by default. 
+
+One solution is to configure iptables to forward all traffic on port 80 to port 8888. This can be achieved using a firewall rule like this:
+
+iptables -A INPUT -i eth1 -p tcp --dport 80 -j ACCEPT
+iptables -A INPUT -i eth1 -p tcp --dport 8888 -j ACCEPT
+iptables -A INPUT -i eth1 -p tcp --dport 3000 -j ACCEPT
+
+# This rule forwards port 80 to 8888
+iptables -A PREROUTING -t nat -i eth1 -p tcp --dport 80 -j REDIRECT --to-port 8888
+
+Be sure to set the correct interface (eth0 or eth1?) for your environment.
+
+You might also need to enable forwarding:
+
+sysctl net.ipv4.conf.eth0.forwarding=1
+
+#### Alternative solution
+You can now start the application as root using sudo and have it setuid to an unprivliged user:
+
+```
+sudo CDNS_PORT=80 node cdns-frontend.js
+```
+All worker processes will run as the unprivliged user. However, the master process which is responsible for respawning workers will continue to operate as root.
 
 
 
