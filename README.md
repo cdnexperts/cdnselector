@@ -111,7 +111,7 @@ CDNS_DB_URL=http://admin:newpassword@localhost:5984/cdns node cdns-frontend.js
 If you have a few settings you can include these in a shell script. The full set of environment variables are listed below. 
 
 # Configuration
-Most of the configuration of CDNS takes place centrally in the admin console. However, there are a few deployment settings that are configured on a server-by-server basis using environment variables.
+Most of the configuration of CDNS takes place centrally in the admin console (point your browser to http://{server-ip}:3000/). However, there are a few deployment settings that are configured on a server-by-server basis using environment variables.
 
 It is optional whether you set these environment variables. If unset, then the default values will be used.
 
