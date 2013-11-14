@@ -141,12 +141,12 @@ By convention most HTTP servers listen on port 80. However, it is not possible t
 
 One solution is to configure iptables to forward all traffic on port 80 to port 8888. This can be achieved using a firewall rule like this:
 
+```
 iptables -A INPUT -i eth1 -p tcp --dport 80 -j ACCEPT
 iptables -A INPUT -i eth1 -p tcp --dport 8888 -j ACCEPT
 iptables -A INPUT -i eth1 -p tcp --dport 3000 -j ACCEPT
-
-# This rule forwards port 80 to 8888
 iptables -A PREROUTING -t nat -i eth1 -p tcp --dport 80 -j REDIRECT --to-port 8888
+```
 
 Be sure to set the correct interface (eth0 or eth1?) for your environment.
 
