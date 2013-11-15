@@ -84,7 +84,8 @@ sudo service couchdb start
 If you want a quick and easy way to get running with CouchDB, you could also try the free hosted service at http://www.iriscouch.com/.
 
 
-####3) Clone the CDN Selector repo and download Javascript dependencies. The application uses the Node Package Manager (npm) to automatically download the required Open Source Javascript libraries.
+####3) Clone the CDN Selector repo and download Javascript dependencies. 
+The application uses the Node Package Manager (npm) to automatically download the required Open Source Javascript libraries.
 ```
 git clone https://github.com/cdnexperts/cdnselector.git
 cd cdnselector
