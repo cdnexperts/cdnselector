@@ -106,7 +106,7 @@ End-users can access the service on port 8888, but see below for instructions on
 If you would like to alter any of the default settings, such as the database connection details (did you change the DB admin password in step 2?) then you can do this by setting environment variables. For example, to set the database URL & login:
 
 ```
-CDNS_DB_URL=http://admin:newpassword@localhost:5984/cdns node cdns-frontend.js
+CDNS_DB_URL=http://admin:newpassword@localhost:5984 node cdns-frontend.js
 ```
 If you have a few settings you can include these in a shell script. The full set of environment variables are listed below. 
 
