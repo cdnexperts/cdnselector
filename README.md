@@ -196,7 +196,7 @@ You can now start the application as root using sudo and have it setuid to an un
 ```
 sudo CDNS_PORT=80 node cdns-frontend.js
 ```
-All worker processes will run as the unprivliged user. However, the master process which is responsible for respawning workers will continue to operate as root.
+All worker processes will run as the unprivileged user. However, the master process which is responsible for respawning workers will continue to operate as root.
 
 # More documentation
 See the project wiki at : https://github.com/cdnexperts/cdnselector/wiki
