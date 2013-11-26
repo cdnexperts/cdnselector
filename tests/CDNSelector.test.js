@@ -1,64 +1,67 @@
 /*jslint node: true*/
 /*global describe, it */
 "use strict";
-var should = require('should');
-
-var CDNSelector = require('../libs/CDNSelector');
+var should = require('should'),
+    CDNSelector = require('../libs/CDNSelector'),
+    loadBalancer = {
+        balance: function (cdns, distrib, options) {
+            return cdns;
+        }
+    };
 
 describe('CDNSelector', function () {
     describe('#selectNetworks', function () {
-
-            it('should provide a list of CDNs in the configured priority order', function() {
-                var distribs = {
-                        getByHostname: function () {
-                            return {
-                                providers: [
-                                    {
-                                        id: 'velocix',
-                                        active: true
-                                    },
-                                    {
-                                        id: 'akamai',
-                                        active: true,
-                                        hostname: 'id1234.akamai.com'
-                                    },
-                                    {
-                                        id: 'amazon',
-                                        active: true,
-                                        hostname: 'id12345.cloudfront.net'
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    cdns = {
-                        getAll: function (id) {
-                            return {
-                                velocix: {
-                                    driver: 'cdns:cdn:driver:velocix',
+        it('should provide a list of CDNs in the configured priority order', function() {
+            var distribs = {
+                    getByHostname: function () {
+                        return {
+                            providers: [
+                                {
+                                    id: 'velocix',
                                     active: true
                                 },
-                                akamai: {
-                                    driver: 'cdns:cdn:driver:generic',
-                                    active: true
+                                {
+                                    id: 'akamai',
+                                    active: true,
+                                    hostname: 'id1234.akamai.com'
                                 },
-                                amazon: {
-                                    driver: 'cdns:cdn:driver:amazon',
-                                    active: true
+                                {
+                                    id: 'amazon',
+                                    active: true,
+                                    hostname: 'id12345.cloudfront.net'
                                 }
-                            };
-                        },
-                        on: function () {}
+                            ]
+                        }
+                    }
+                },
+                cdns = {
+                    getAll: function (id) {
+                        return {
+                            velocix: {
+                                driver: 'cdns:cdn:driver:velocix',
+                                active: true
+                            },
+                            akamai: {
+                                driver: 'cdns:cdn:driver:generic',
+                                active: true
+                            },
+                            amazon: {
+                                driver: 'cdns:cdn:driver:amazon',
+                                active: true
+                            }
+                        };
                     },
-                    cdnSelector = new CDNSelector(distribs, cdns);
+                    on: function () {}
+                },
+                cdnSelector = new CDNSelector(distribs, cdns, loadBalancer);
 
-                    var cdns = cdnSelector.selectNetworks("1.2.3.4", "www.example.com");
-                    cdns.length.should.equal(3);
-                    cdns[0].id.should.equal('velocix');
-                    cdns[1].id.should.equal('akamai');
-                    cdns[2].id.should.equal('amazon');
+            var selection = cdnSelector.selectNetworks("1.2.3.4", "www.example.com");
+            selection.cdns.length.should.equal(3);
+            selection.cdns[0].id.should.equal('velocix');
+            selection.cdns[1].id.should.equal('akamai');
+            selection.cdns[2].id.should.equal('amazon');
 
-            });
+        });
 
         it('should filter CDNs by their IP whitelist', function() {
             var eventHandlers = {},
@@ -130,18 +133,17 @@ describe('CDNSelector', function () {
                         eventHandlers[event] = handler;
                     }
                 },
-                cdnSelector = new CDNSelector(distribs, cdns);
+                cdnSelector = new CDNSelector(distribs, cdns, loadBalancer);
                 should.exist(eventHandlers.error);
                 should.exist(eventHandlers.updated);
 
-                var cdns = cdnSelector.selectNetworks("1.2.0.1", "www.example.com");
-                cdns.length.should.equal(3);
-                cdns[0].id.should.equal('akamai');
-                cdns[1].id.should.equal('amazon');
-                cdns[2].id.should.equal('rackspace');
+                var selection = cdnSelector.selectNetworks("1.2.0.1", "www.example.com");
+                selection.cdns.length.should.equal(3);
+                selection.cdns[0].id.should.equal('akamai');
+                selection.cdns[1].id.should.equal('amazon');
+                selection.cdns[2].id.should.equal('rackspace');
 
 
-                console.log('<start>');
                 // Now throw in an update and retest
                 eventHandlers.updated('rackspace', {
                     driver: 'cdns:cdn:driver:generic',
@@ -156,11 +158,10 @@ describe('CDNSelector', function () {
                     }
                 });
 
-                cdns = cdnSelector.selectNetworks("1.2.0.1", "www.example.com");
-                cdns.length.should.equal(2);
-                cdns[0].id.should.equal('akamai');
-                cdns[1].id.should.equal('amazon');
-                console.log('</start>');
+                selection = cdnSelector.selectNetworks("1.2.0.1", "www.example.com");
+                selection.cdns.length.should.equal(2);
+                selection.cdns[0].id.should.equal('akamai');
+                selection.cdns[1].id.should.equal('amazon');
 
         });
 
@@ -193,43 +194,28 @@ describe('CDNSelector', function () {
                             velocix: {
                                 id: 'velocix',
                                 driver: 'cdns:cdn:driver:velocix',
-                                allowsOffNetClients: function () {
-                                    return false;
-                                },
-                                isActive: function () {
-                                    return true;
-                                }
+                                active: true
                             },
                             akamai: {
                                 id: 'akamai',
                                 driver: 'cdns:cdn:driver:generic',
-                                allowsOffNetClients: function () {
-                                    return true;
-                                },
-                                isActive: function () {
-                                    return true;
-                                }
+                                active: false
                             },
                             amazon: {
                                 id: 'amazon',
                                 driver: 'cdns:cdn:driver:amazon',
-                                allowsOffNetClients: function () {
-                                    return true;
-                                },
-                                isActive: function () {
-                                    return true;
-                                }
+                                active: true
                             }
                         };
                     },
                     on: function () {}
                 },
-                cdnSelector = new CDNSelector(distribs, cdns);
+                cdnSelector = new CDNSelector(distribs, cdns, loadBalancer);
 
-                var cdns = cdnSelector.selectNetworks("1.2.3.4", "www.example.com");
-                cdns.length.should.equal(2);
-                cdns[0].id.should.equal('velocix');
-                cdns[1].id.should.equal('amazon');
+                var selection = cdnSelector.selectNetworks("1.2.3.4", "www.example.com");
+                selection.cdns.length.should.equal(2);
+                selection.cdns[0].id.should.equal('velocix');
+                selection.cdns[1].id.should.equal('amazon');
         });
 
         it('should return an empty list if the hostname is not configured', function() {
@@ -243,42 +229,24 @@ describe('CDNSelector', function () {
                         return {
                             velocix: {
                                 id: 'velocix',
-                                driver: 'cdns:cdn:driver:velocix',
-                                allowsOffNetClients: function () {
-                                    return false;
-                                },
-                                isActive: function () {
-                                    return true;
-                                }
+                                driver: 'cdns:cdn:driver:velocix'
                             },
                             akamai: {
                                 id: 'akamai',
-                                driver: 'cdns:cdn:driver:generic',
-                                allowsOffNetClients: function () {
-                                    return true;
-                                },
-                                isActive: function () {
-                                    return true;
-                                }
+                                driver: 'cdns:cdn:driver:generic'
                             },
                             amazon: {
                                 id: 'amazon',
-                                driver: 'cdns:cdn:driver:amazon',
-                                allowsOffNetClients: function () {
-                                    return true;
-                                },
-                                isActive: function () {
-                                    return true;
-                                }
+                                driver: 'cdns:cdn:driver:amazon'
                             }
                         };
                     },
                     on: function () {}
                 },
-                cdnSelector = new CDNSelector(distribs, cdns);
+                cdnSelector = new CDNSelector(distribs, cdns, loadBalancer);
 
-                var cdns = cdnSelector.selectNetworks("1.2.3.4", "www.example.com");
-                cdns.length.should.equal(0);
+                var selection = cdnSelector.selectNetworks("1.2.3.4", "www.example.com");
+                selection.cdns.length.should.equal(0);
         });
     });
 });

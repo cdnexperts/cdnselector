@@ -120,6 +120,10 @@ proto.isActive = function () {
     return this.config.active ? true : false;
 };
 
+proto.hasWhitelist = function () {
+    return this.clientIpWhitelist ? true : false;
+};
+
 proto.isClientIpAllowed = function (ipAddress) {
     if (!this.clientIpWhitelist) {
         // There is no restriction in the config, so allow by default

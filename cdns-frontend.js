@@ -12,7 +12,8 @@ var cluster = require('cluster'),
     loggers = require('./libs/logger'),
 
     HttpServer = require('./libs/servers/HttpServer'),
-    CDNSelector = require('./libs/CDNSelector');
+    CDNSelector = require('./libs/CDNSelector'),
+    LoadBalancer = require('./libs/LoadBalancer');
 
 function checkPort(port, callback) {
     var server = net.createServer(),
@@ -42,7 +43,8 @@ var distribDao,
     cdnDao,
     cdnSelector,
     db,
-    httpServer;
+    httpServer,
+    loadBalancer;
 
 
 // Startup checks and pre-loading data
@@ -111,7 +113,8 @@ if (cluster.isMaster) {
         }
     ], function (err, results) {
         if (!err) {
-            cdnSelector = new CDNSelector(distribDao, cdnDao);
+            loadBalancer = new LoadBalancer(localConfig.loadBalancePeriod);
+            cdnSelector = new CDNSelector(distribDao, cdnDao, loadBalancer);
 
             httpServer = new HttpServer(localConfig.port, cdnSelector, loggers.accesslog);
             httpServer.on('ready', function () {
@@ -121,10 +124,14 @@ if (cluster.isMaster) {
                 }
                 loggers.errorlog.info('Worker process ' + process.pid + ' started');
             });
+            httpServer.on('redirection', function (cdn, distrib) {
+                // Tell the load balancer whenever a CDN is used.
+                loadBalancer.notifyCdnUsage(cdn, distrib);
+            });
             httpServer.start();
 
         } else {
-            errorExit(err);
+            errorExit(err);;
         }
     });
 }

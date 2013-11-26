@@ -22,6 +22,9 @@ module.exports = {
             level: level,
             timestamp: false
         });
+        if (level === 'debug') {
+            global.DEBUG = true;
+        }
         return this;
     }
 }

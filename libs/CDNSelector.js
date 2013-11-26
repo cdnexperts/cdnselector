@@ -6,10 +6,11 @@ var VelocixCDN = require('./cdn/VelocixCDN'),
     AmazonCloudfront = require('./cdn/AmazonCloudfront'),
     logger = require('winston');
 
-function CDNSelector(distribDao, cdnDao) {
+function CDNSelector(distribDao, cdnDao, loadBalancer) {
     this.distribDao = distribDao;
     this.cdnDao = cdnDao;
     this.cdnInstances = {};
+    this.loadBalancer = loadBalancer;
 
     var self = this,
         cdnClasses = {
@@ -32,6 +33,7 @@ function CDNSelector(distribDao, cdnDao) {
         }
         return cdn;
     }
+
 
     // Load a driver for each CDN at startup
     var cdnConfigs = cdnDao.getAll();
@@ -59,18 +61,28 @@ var proto = CDNSelector.prototype;
 
 proto.selectNetworks = function (clientIp, hostname) {
     var self = this,
-        candidates = [];
+        candidates = [],
+        options = {},
+        homeCdn = null;
 
 
     // Lookup the configuration for this hostname
     var distrib = self.distribDao.getByHostname(hostname);
     if (!distrib || !distrib.providers) {
-        return [];
+        return {
+            distribution: null,
+            cdns: []
+        };
     }
 
     // Loop through the possible CDNs (aka, providers) for this hostname
     distrib.providers.forEach(function (provider) {
         logger.debug('CDN Selector considering ' + provider.id);
+
+        //TODO make this into a pipeline of loosely-coupled modules, each responsible for their check.
+        // e.g, activeCheck, whitelist check, loadBalance.
+        // These should have a common interface which will facilitate plugins and
+        // simpler development of future features.
 
         // Is this provider active?
         if (provider.active) {
@@ -90,6 +102,15 @@ proto.selectNetworks = function (clientIp, hostname) {
                     logger.debug('  Adding ' + cdn + ' to candidate list');
                 }
                 candidates.push(cdn);
+
+                // Set an option to allow downstream checks to know that this has been whitelist cleared
+                if (cdn.hasWhitelist()) {
+                    if (!options.whitelistAllowed) {
+                        options.whitelistAllowed = {};
+                    }
+                    options.whitelistAllowed[cdn.id] = true;
+
+                }
             } else if (global.DEBUG) {
                 logger.debug('  Rejecting ' + cdn);
             }
@@ -98,7 +119,13 @@ proto.selectNetworks = function (clientIp, hostname) {
         }
     });
 
-    return candidates;
+    candidates = this.loadBalancer.balance(candidates, distrib, options);
+
+
+    return {
+        distribution: distrib,
+        cdns: candidates
+    };
 };
 
 

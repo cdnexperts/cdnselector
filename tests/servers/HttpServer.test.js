@@ -30,7 +30,9 @@ describe('HttpServer', function () {
                     selectNetworks: function (ip, hostname) {
                         ip.should.equal('127.0.0.1');
                         hostname.should.equal('localhost');
-                        return [mockCdn1, mockCdn2];
+                        return {
+                                cdns: [mockCdn1, mockCdn2]
+                        };
                     }
                 },
                 mockRequestLogger = {
@@ -82,7 +84,9 @@ describe('HttpServer', function () {
                     selectNetworks: function (ip, hostname) {
                         ip.should.equal('127.0.0.1');
                         hostname.should.equal('localhost');
-                        return [mockCdn1, mockCdn2];
+                        return {
+                            cdns: [mockCdn1, mockCdn2]
+                        };
                     }
                 },
                 mockRequestLogger = {
@@ -130,7 +134,9 @@ describe('HttpServer', function () {
                     selectNetworks: function (ip, hostname) {
                         ip.should.equal('127.0.0.1');
                         hostname.should.equal('localhost');
-                        return [mockCdn1, mockCdn2];
+                        return {
+                            cdns: [mockCdn1, mockCdn2]
+                        };
                     }
                 },
                 mockRequestLogger = {
@@ -178,7 +184,9 @@ describe('HttpServer', function () {
                     selectNetworks: function (ip, hostname) {
                         ip.should.equal('127.0.0.1');
                         hostname.should.equal('localhost');
-                        return [mockCdn1, mockCdn2];
+                        return {
+                            cdns: [mockCdn1, mockCdn2]
+                        }
                     }
                 },
                 mockRequestLogger = {
@@ -215,7 +223,9 @@ describe('HttpServer', function () {
                     selectNetworks: function (ip, hostname) {
                         ip.should.equal('127.0.0.1');
                         hostname.should.equal('localhost');
-                        return [];
+                        return {
+                            cdns: []
+                        };
                     }
                 },
                 mockRequestLogger = {
