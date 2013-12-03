@@ -7,8 +7,8 @@
         <link href="vendors/jquery-ui.css" rel="stylesheet" media="screen"/>
         <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
         <link href="bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet" media="screen">
-        <link href="assets/styles.css" rel="stylesheet" media="screen">
         <link href="vendors/DT_bootstrap.css" rel="stylesheet" media="screen">
+        <link href="assets/styles.css" rel="stylesheet" media="screen">
         <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="vendors/flot/excanvas.min.js"></script><![endif]-->
         <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
         <!--[if lt IE 9]>
@@ -26,6 +26,7 @@
     </head>
 
     <body>
+
         <div class="navbar navbar-fixed-top">
             <div class="navbar-inner">
                 <div class="container-fluid">
@@ -76,7 +77,6 @@
         </div>
 
 
-
        <script type="text/template" id="tplDatatable">
           <div class="row-fluid">
             <div class="block">
@@ -97,6 +97,48 @@
         </script>
 
 
+        <script id="tplProviderEditView" type="text/template">
+          <form class="form-horizontal" role="form">
+            <div class="modal-header">
+              <h2><%= cdn.name %> Configuration</h2>
+            </div>
+
+            <div class="modal-body control-group">
+              <div id="errorBox" class="span9 alert alert-error alert-block hide">
+                <h4 class="alert-heading">Error!</h4>
+                <p>An unknown error occured.</p>
+              </div>
+              <% if (cdn.routingService) { %>
+                <p class="well">This CDN uses a server-side routing service to automatically look up the hostname for each request. Therefore you do not need to specify a target hostname.</p>
+              <% } %>
+              <label class="control-label" for="hostname">Target Hostname</label>
+              <div class="controls">
+                <input class="input-xlarge focused" placeholder="e.g. d2tihyvz36rus8.cloudfront.net" id="providerHostname" type="text" value="<%= _.isString(provider.hostname) ? provider.hostname : '' %>" <%= cdn.routingService ? 'disabled' : '' %>/>
+                <p class="help-block">the hostname to direct traffic to on <%= cdn.name %>. You should be able to find this on the <%= cdn.name %> admin portal.</p>
+              </div>
+              <% if (cdn.driver === 'cdns:cdn:driver:amazon') { %>
+                <h5>Signed URL generation</h5>
+                <div class="control-group">
+                      <label class="control-label" for="awsCfKeyPairId">Cloudfront Key Pair ID</label>
+                      <div class="controls">
+                        <input class="input-xlarge focused" id="awsCfKeyPairId" type="text" placeholder="APKAIRTLD3CK3QO4UAJA" value="<%= provider.signedUrl ? provider.signedUrl.awsCfKeyPairId : '' %>"/>
+                        <p class="help-block">Key Pairs can be generated using the Amazon WebServices console.</p>
+                      </div>
+                </div>
+                <div class="control-group">
+                  <label class="control-label" for="awsCfPrivateKey">Private Key</label>
+                  <div class="controls">
+                    <textarea id="awsCfPrivateKey" class="input-small textarea" placeholder="-----BEGIN RSA PRIVATE KEY-----MIIEpAIBAAKCAQEAjejN1DZG/dwXte5bcKGE9VsOPgr9k9A1vdQUJPQXdgSA0jcpi/kVS3pBrjOIni1j22A9epklQVoMlXZi/sM+beBm8RUxfjBws7PchEx8khd36WONLlZRDAUA6a7YQ2OwadpBegGdIs..." style="width: 450px; height: 100px"><%= provider.signedUrl ? provider.signedUrl.awsCfPrivateKey : '' %></textarea>
+                    <p class="help-block">the private key used to generate Signed URLs (copy and paste from the .pem file downloaded from the Amazon WebServices console).</p>
+                  </div>
+                </div>
+              <% } %>
+            </div>
+            <div class="modal-footer">
+              <button class="btn-default" id="btnOk">Ok</button>
+            </div>
+          </form>
+        </script>
 
         <script type="text/template" id="tplDistributionsForm">
           <div id="distributionFormBlock" class="block">
@@ -122,112 +164,69 @@
                             <p class="help-block">the hostname that will be used for this distribution. If you have multiple hostnames, put each on a new line.</p>
                           </div>
                         </div>
-                        <h5>Token Authentication</h5>
-                        <p>If you use token authentication with this distribution you must answer the following questions. The values should match exactly the corresponding configuration in the Velocix CDN.</p>
                         <div class="control-group">
-                              <label class="control-label" for="authParam">Auth Parameter name</label>
-                              <div class="controls">
-                                <input class="input-xlarge focused" id="authParam" type="text" placeholder="authtoken" value="<%= authParam %>"/>
-                                <p class="help-block">the URL querystring parameter that will contain a Velocix HMAC token</p>
-                              </div>
-                        </div>
-                         <div class="control-group">
-                              <label class="control-label" for="authSecret1">Secret 1</label>
-                              <div class="controls">
-                                <input class="input-xlarge focused" id="authSecret1" type="text" placeholder="secret1" value="<%= authSecrets[0] %>"/>
-                              </div>
-                        </div>
-                         <div class="control-group">
-                              <label class="control-label" for="authSecret2">Secret 2</label>
-                              <div class="controls">
-                                <input class="input-xlarge focused" id="authSecret2" type="text" placeholder="secret2" value="<%= authSecrets[1] %>"/>
-                                <p class="help-block">the authorization secrets used to validate tokens, as configured in the Velocix Console.</p>
-                              </div>
-                        </div>
-
-                        <h5>CDN Provider Order</h5>
-                        <p class="alert alert-info"><i class="icon-arrow-left"></i>Drag the tabs into the required order of priority<i class="icon-arrow-right"></i></em></p>
-
-                        <div class="control-group">
-                            <div id="tabs">
-                              <ul class="tabHeads">
+                          <div id="categoryTabs" class="span12">
+                            <ul>
+                              <li><a href="#cdn-provider-tab">CDN Providers</a></li>
+                              <li><a href="#token-auth-tab">Token Authentication</a></li>
+                            </ul>
+                            <div id="cdn-provider-tab" class="row-fluid">
+                              <div id="providerList" class="span11">
                                 <% _.each(providers, function(provider, index, list) { %>
-                                  <li><a href="#<%=provider.id %>" providerId="<%=provider.id %>" id="<%=provider.id %>TabHead"><%= provider.cdn ? provider.cdn.name : provider.id %></a></li>
+                                  <% if (provider.active) { %>
+                                    <div class="moveable row-fluid providerRow" id="<%=provider.id %>">
+                                      <div class="span1"><span class="ui-icon ui-icon-arrowthick-2-n-s"></span></div>
+                                      <div class="span8">
+                                        <p><strong><%= provider.cdn ? provider.cdn.name : provider.id %></strong></p>
+                                        <p><%= provider.hostname ? provider.hostname : 'No hostname configured' %></p>
+                                      </div>
+                                      <div class="span3"><button class="btn btn-primary edit editProvider" id="<%= provider.id %>">Configure</button></div>
+                                    </div>
+                                  <% } %>
                                 <% }); %>
-                              </ul>
-
-                                <% _.each(providers, function(provider, index, list) {
-                                      if (provider.cdn && provider.cdn.driver === 'cdns:cdn:driver:velocix') { %>
-                                        <div id="<%=provider.id %>" class="tabBody">
-                                          <div class="control-group">
-                                            <label class="control-label" for="velocixActive">Enabled</label>
-                                            <div class="controls">
-                                              <label class="uniform">
-                                                <input class="uniform_on" type="checkbox" id="active" value="velocixActive" <%= provider.active ? 'checked' : '' %>>
-                                              </label>
-                                              <p>Server-side cache selection will be used to determine how to route requests to your Velocix CDN.</p>
-                                              <p>Any authentication tokens will be passed-thru for validation by the Velocix CDN.</p>
-                                              <p>This CDN is configured to only accept requests from On-Net clients.</p>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      <% } else if (provider.cdn && provider.cdn.driver === 'cdns:cdn:driver:amazon') { %>
-                                        <div id="<%=provider.id %>" class="tabBody">
-                                          <div class="control-group">
-                                            <label class="control-label" for="amazonEnabled">Enabled</label>
-                                            <div class="controls">
-                                              <label class="uniform">
-                                                <input class="uniform_on" type="checkbox" id="active" value="amazonActive" <%= provider.active ? 'checked' : '' %>>
-                                              </label>
-                                            </div>
-                                          </div>
-                                          <div class="control-group">
-                                                <label class="control-label" for="hostname">Cloudfront Hostname</label>
-                                                <div class="controls">
-                                                  <input class="input-xlarge focused" placeholder="e.g. d2tihyvz36rus8.cloudfront.net" id="hostname" type="text" value="<%= provider.hostname %>"/>
-                                                  <p class="help-block">the hostname of the CloudFront Distribution (without http://). This can be retrieved from the Amazon WebServices Console.</p>
-                                                </div>
-                                          </div>
-
-                                          <h5>Signed URL generation</h5>
-                                          <p>Amazon Cloudfront supports signed URLs, which are similar to Velocix Tokens.</p>
-                                          <p>CDN Selector will convert any requests containing Velocix Tokens into Amazon Signed URLs if you provide the following information.</p>
-                                          <div class="control-group">
-                                                <label class="control-label" for="awsCfKeyPairId">Cloudfront Key Pair ID</label>
-                                                <div class="controls">
-                                                  <input class="input-xlarge focused" id="awsCfKeyPairId" type="text" placeholder="APKAIRTLD3CK3QO4UAJA" value="<%= provider.signedUrl ? provider.signedUrl.awsCfKeyPairId : '' %>"/>
-                                                  <p class="help-block">Key Pairs can be generated using the Amazon WebServices console.</p>
-                                                </div>
-                                          </div>
-                                          <div class="control-group">
-                                            <label class="control-label" for="awsCfPrivateKey">Private Key</label>
-                                            <div class="controls">
-                                              <textarea id="awsCfPrivateKey" class="input-small textarea" placeholder="-----BEGIN RSA PRIVATE KEY-----MIIEpAIBAAKCAQEAjejN1DZG/dwXte5bcKGE9VsOPgr9k9A1vdQUJPQXdgSA0jcpi/kVS3pBrjOIni1j22A9epklQVoMlXZi/sM+beBm8RUxfjBws7PchEx8khd36WONLlZRDAUA6a7YQ2OwadpBegGdIs..." style="width: 450px; height: 150px"><%= provider.signedUrl ? provider.signedUrl.awsCfPrivateKey : '' %></textarea>
-                                              <p class="help-block">the private key used to generate Signed URLs (copy and paste from the .pem file downloaded from the Amazon WebServices console).</p>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      <%} else { %>
-                                        <div id="<%=provider.id %>" class="tabBody">
-                                          <div class="control-group">
-                                            <label class="control-label" for="genericActive">Enabled</label>
-                                            <div class="controls">
-                                              <label class="uniform">
-                                                <input class="uniform_on" type="checkbox" id="active" value="genericActive" <%= provider.active ? 'checked' : '' %>>
-                                              </label>
-                                            </div>
-                                          </div>
-                                          <div class="control-group">
-                                                  <label class="control-label" for="hostname">Hostname</label>
-                                                  <div class="controls">
-                                                    <input class="input-xlarge focused" id="hostname" type="text" value="<%= provider.hostname %>"/>
-                                                    <p class="help-block">the hostname that requests should be directed to on this CDN</p>
-                                                  </div>
-                                            </div>
-                                          </div>
-                                      <%}
-                                });%>
+                                <div class="row-fluid ui-state-disabled inactiveHeading">Inactive CDN Providers</div>
+                                <% _.each(providers, function(provider, index, list) { %>
+                                  <% if (!provider.active) { %>
+                                    <div class="moveable row-fluid inactiveProviderRow" id="<%=provider.id %>">
+                                      <div class="span1"><span class="ui-icon ui-icon-arrowthick-2-n-s"></span></div>
+                                      <div class="span8">
+                                        <p><strong><%= provider.cdn ? provider.cdn.name : provider.id %></strong></p>
+                                        <p><%= provider.hostname ? provider.hostname : 'No hostname configured' %></p>
+                                      </div>
+                                      <div class="span3"><button class="btn btn-primary edit editProvider" id="<%= provider.id %>">Configure</button></div>
+                                    </div>
+                                  <% } %>
+                                <% }); %>
+                                <div class="row-fluid ui-state-disabled"></div>
+                              </div>
+                              <div class="span1"></div>
                             </div>
+                            <div id="token-auth-tab" class="row-fluid">
+                              <div class="span12">
+                                <p>If you use token authentication with this distribution you must answer the following questions. The values should match exactly the corresponding configuration in the Velocix CDN.</p>
+                                <div class="control-group">
+                                      <label class="control-label" for="authParam">Auth Parameter name</label>
+                                      <div class="controls">
+                                        <input class="input-xlarge focused" id="authParam" type="text" placeholder="authtoken" value="<%= authParam %>"/>
+                                        <p class="help-block">the URL querystring parameter that will contain a Velocix HMAC token</p>
+                                      </div>
+                                </div>
+                                 <div class="control-group">
+                                      <label class="control-label" for="authSecret1">Secret 1</label>
+                                      <div class="controls">
+                                        <input class="input-xlarge focused" id="authSecret1" type="text" placeholder="secret1" value="<%= authSecrets[0] %>"/>
+                                      </div>
+                                </div>
+                                 <div class="control-group">
+                                      <label class="control-label" for="authSecret2">Secret 2</label>
+                                      <div class="controls">
+                                        <input class="input-xlarge focused" id="authSecret2" type="text" placeholder="secret2" value="<%= authSecrets[1] %>"/>
+                                        <p class="help-block">the authorization secrets used to validate tokens, as configured in the Velocix Console.</p>
+                                      </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
                         <div class="form-actions">
@@ -299,7 +298,7 @@
                             <div class="control-group">
                               <label class="control-label" for="ipWhitelist">Allowed Network Ranges</label>
                               <div class="controls">
-                                <textarea id="ipWhitelist" class="input-xlarge textarea" placeholder="0.0.0.0/0" style="width: 250px; height: 250px"><% _.each(clientIpWhitelist.manual, function(network) { console.log(network);%><%= network.network %>/<%= network.prefix %><%='\n' %><%}); %></textarea>
+                                <textarea id="ipWhitelist" class="input-xlarge textarea" placeholder="0.0.0.0/0" style="width: 250px; height: 250px"><% _.each(clientIpWhitelist.manual, function(network) { %><%= network.network %>/<%= network.prefix %><%='\n' %><%}); %></textarea>
                                 <p class="help-block">Provide network ranges in CIDR notation, one per line. For example 192.168.2.0/24 for IPv4, or 2001:db8:1234:1::/64 for IPv6)</p>
                               </div>
                             </div>
@@ -368,6 +367,7 @@
         <script src="assets/CdnModel.js"></script>
         <script src="assets/DistributionModel.js"></script>
         <script src="assets/DistributionFormView.js"></script>
+        <script src="assets/ProviderEditView.js"></script>
         <script src="assets/DistributionsView.js"></script>
         <script src="assets/CdnsView.js"></script>
         <script src="assets/CdnFormView.js"></script>

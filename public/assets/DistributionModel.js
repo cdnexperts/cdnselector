@@ -33,12 +33,14 @@ var Distribution = Backbone.Model.extend({
 
                 // If cloudfront is enabled, a Hostname must be specified
                 if (provider.driver === 'cdns:cdn:driver:amazon' && _.isEmpty(provider.hostname)) {
-                    err = 'You must specify a hostname for ' + provider.name + ' (or otherwise disable it)';
+                    err = 'You must specify a hostname for ';
+                    err += provider.name ? provider.name : 'the Amazon Cloudfront CDN (or disable it)';
                 }
 
                 // If generic is enabled, a hostname must be specified
                 if (provider.driver === 'cdns:cdn:driver:generic' && _.isEmpty(provider.hostname)) {
-                    err = 'You must specify a hostname for the ' + provider.name + ' (or otherwise disable it)';
+                    err = 'You must specify a hostname for ';
+                    err += provider.name ? provider.name : 'this CDN (or disable it)';
                 }
             }
         });
@@ -50,7 +52,6 @@ var Distribution = Backbone.Model.extend({
         if (!activeProviderFound) {
             return "You must enable at least one CDN provider";
         }
-
     }
 });
 

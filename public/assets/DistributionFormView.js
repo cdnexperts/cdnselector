@@ -3,7 +3,9 @@ var DistributionFormView = Backbone.View.extend({
     template:_.template($('#tplDistributionsForm').html()),
 
     events: {
-        "click #btnSaveDistribution": "saveDistribution"
+        "click #btnSaveDistribution": "saveDistribution",
+        "click #btnSaveDistribution": "saveDistribution",
+        "click .editProvider": "onConfigureProviderClick"
     },
 
     initialize: function() {
@@ -13,15 +15,23 @@ var DistributionFormView = Backbone.View.extend({
         }
         this.render();
         this.model.on('invalid', this.renderError, this);
+        this.model.on('change:providers', this.render, this);
     },
 
     close: function() {
+        if (this.dialog) {
+            this.dialog.close();
+        }
         this.model.off('invalid', this.renderError, this);
+        this.model.off('change:providers', this.render, this);
         this.remove();
     },
 
     render: function() {
-        var templateParams = this.model.toJSON();
+        var templateParams = _.clone(this.model.attributes);
+        if (this.model.isValid()) {
+            $('#errorBox').hide();
+        }
 
         // make sure that the model has a provider for every CDN, even if its empty
         this.options.cdnCollection.forEach(function(cdn) {
@@ -57,6 +67,15 @@ var DistributionFormView = Backbone.View.extend({
         this.$el.html(this.template(templateParams));
 
         // Apply the jQuery tabs
+        $('#categoryTabs').tabs()
+        $('#providerList').sortable({
+            cursor: "move",
+            axis: "y",
+            revert: true,
+            cancel: ".ui-state-disabled"
+        });
+
+
         this.renderTabs();
         return this;
     },
@@ -114,15 +133,22 @@ var DistributionFormView = Backbone.View.extend({
 
     },
 
-    saveDistribution: function(e) {
-        e.preventDefault();
+    onConfigureProviderClick: function(e) {
+        this.updateModelFromForm();
+        this.dialog = new ProviderEditView({
+            model: this.model,
+            providerId: e.target.id,
+            cdn: this.options.cdnCollection.findWhere({ _id: e.target.id}).toJSON()
+        });
+        this.dialog.show();
+    },
 
+    updateModelFromForm: function() {
         var self = this,
             distribution = {
                name: $('#name').val(),
                hostnames: [],
-               authSecrets: [],
-               providers: []
+               authSecrets: []
             };
 
         if ($('#authParam').val()) {
@@ -142,38 +168,36 @@ var DistributionFormView = Backbone.View.extend({
                 distribution.hostnames.push(hostname);
             });
         }
+        this.model.set(distribution);
 
-
-        $('#tabs ul li a').each(function(i, a) {
-            var provider = {};
-            provider.id = $(a).attr('providerId');
-
-            // Lookup the tab's div element
-            var tab = $('#tabs div#' + provider.id.replace(/:/g, '\\:'));
-
-            // Copy the CDN name and driver into the provider
-            var cdn = self.options.cdnCollection.get(provider.id);
-            provider.driver = cdn.get('driver');
-            provider.name = cdn.get('name');
-
-            // Active flag
-            provider.active = $('input[type=checkbox]:checked', tab).length === 1;
-
-            // Hostname
-            if ($('input#hostname', tab).length > 0) {
-                provider.hostname = $('input#hostname', tab).val();
+        var oldProviders = this.model.get('providers');
+        var newProviders = [];
+        var isActive = true;
+        $('#providerList > div').each(function (i, el) {
+            if ($(el).hasClass('inactiveHeading')) {
+                isActive = false;
+                return;
             }
 
-            // Amazon SignedURL stuff
-            if (provider.id === 'cdns:cdn:amazon') {
-                provider.signedUrl = {
-                    awsCfKeyPairId: $('input#awsCfKeyPairId', tab).val(),
-                    awsCfPrivateKey:  $('#awsCfPrivateKey', tab).val()
-                };
+            var provider = _.findWhere(oldProviders, { id: el.id });
+            if (provider) {
+                provider.active = isActive;
+                var cdn = self.options.cdnCollection.get(provider.id);
+                provider.driver = cdn.get('driver');
+                provider.name = cdn.get('name');
+                delete provider.cdn;
+                newProviders.push(provider);
             }
-            distribution.providers.push(provider);
         });
-        this.model.save(distribution, {
+
+        this.model.set('providers', newProviders);
+    },
+
+    saveDistribution: function(e) {
+        e.preventDefault();
+        var self = this;
+        this.updateModelFromForm();
+        this.model.save({}, {
             wait: true,
             success: function(model, response, options) {
                 var label = model.get('name') || model.get('_id');
