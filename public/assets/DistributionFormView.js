@@ -79,25 +79,12 @@ var DistributionFormView = Backbone.View.extend({
         // Apply the jQuery tabs
         $('#categoryTabs').tabs()
 
-        $('#selectionMode').val(this.getSelectionMode());
+        $('#selectionMode').val(this.model.get('selectionMode') || 'failover');
         this.renderProviderEditor();
 
         return this;
     },
 
-    getSelectionMode: function() {
-        // Set the initial value of the selection mode dropdown.
-        // If any of the providers have a load balancer that means that load
-        // balancing is enabled.
-        var providers = this.model.get('providers');
-
-        for (var i = 0; i < providers.length; i++) {
-            if (providers[i].loadBalancer) {
-                return 'loadbalance';
-            }
-        }
-        return 'failover';
-    },
 
     renderProviderEditor: function() {
         var self = this;
@@ -121,8 +108,9 @@ var DistributionFormView = Backbone.View.extend({
                     var provider = _.findWhere(oldProviders, { id: el.id });
                     if (provider) {
                         provider.active = isActive;
-                        if (provider.loadBalancer) {
-                            provider.loadBalancer = isActive ? provider.loadBalancer : null;
+                        if (self.model.get('selectionMode') === 'loadbalance' && provider.loadBalancer && !isActive) {
+                            // Reset the load balancer target to 0 when a provider moves to inactive
+                            provider.loadBalancer.targetLoadPercent = 0;
                         }
                         var cdn = self.options.cdnCollection.get(provider.id);
                         provider.driver = cdn.get('driver');
@@ -132,7 +120,6 @@ var DistributionFormView = Backbone.View.extend({
                     }
                 });
 
-                console.log(newProviders);
                 self.model.set('providers', newProviders);
                 self.model.trigger('change:providers');
             }
@@ -167,9 +154,14 @@ var DistributionFormView = Backbone.View.extend({
             sumOfLoads = 0,
             providerCount = 0,
             providers = this.model.get('providers'),
+            selectionMode = $('#selectionMode option:selected').val(),
             i;
 
-        if ($('#selectionMode option:selected').val() !== 'loadbalance') {
+
+        this.model.set('selectionMode', selectionMode);
+
+        if (selectionMode !== 'loadbalance') {
+
             // Remove the load balancer UI bits
             $('#providerList div.actionIcon')
                 .addClass('fa fa-3x fa-sort')
@@ -180,10 +172,6 @@ var DistributionFormView = Backbone.View.extend({
             $('#partition').html('');
             $('#loadBalancer').addClass('hide');
 
-            // Remove the load balancer from the model
-            for (var i = 0; i < providers.length; i++) {
-                delete providers[i].loadBalancer;
-            }
             return;
         }
 
@@ -295,7 +283,8 @@ var DistributionFormView = Backbone.View.extend({
             distribution = {
                name: $('#name').val(),
                hostnames: [],
-               authSecrets: []
+               authSecrets: [],
+               selectionMode: $('#selectionMode option:selected').val()
             };
 
         if ($('#authParam').val()) {

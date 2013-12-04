@@ -32,6 +32,7 @@ var dbDocs = {
     },
     "cdns:distribution:sample-distribution": {
        "type": "cdns:distribution",
+       "selectionMode": "loadbalance",
        "hostnames": [
            "demo.cdnexperts.net",
            "localhost"

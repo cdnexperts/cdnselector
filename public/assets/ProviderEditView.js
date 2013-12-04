@@ -28,7 +28,8 @@ var ProviderEditView = Backbone.View.extend({
         }
         this.$el.html(this.template({
             provider: provider,
-            cdn: this.options.cdn
+            cdn: this.options.cdn,
+            selectionMode: this.model.get('selectionMode') || 'failover'
         }));
         this.$el.modal({ show:false });
     },
@@ -51,6 +52,13 @@ var ProviderEditView = Backbone.View.extend({
                     awsCfKeyPairId: $('#awsCfKeyPairId').val(),
                     awsCfPrivateKey: $('#awsCfPrivateKey').val()
                 };
+            }
+
+            if (this.model.get('selectionMode') === 'loadbalance') {
+                if (!provider.loadBalancer) {
+                    provider.loadBalancer = {};
+                }
+                provider.loadBalancer.alwaysUseForWhitelistedClients = $('#alwaysUseForWhitelistedClients:checked').length === 1;
             }
 
             this.model.set('providers', providers);

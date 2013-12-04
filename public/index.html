@@ -118,6 +118,22 @@
                 <input class="input-xlarge focused" placeholder="e.g. d2tihyvz36rus8.cloudfront.net" id="providerHostname" type="text" value="<%= _.isString(provider.hostname) ? provider.hostname : '' %>" <%= cdn.routingService ? 'disabled' : '' %>/>
                 <p class="help-block">the hostname to direct traffic to on <%= cdn.name %>. You should be able to find this on the <%= cdn.name %> admin portal.</p>
               </div>
+              <% if (selectionMode === 'loadbalance'
+                    && cdn.clientIpWhitelist
+                    && ((cdn.clientIpWhitelist.manual && cdn.clientIpWhitelist.manual.length > 0)
+                      || (cdn.clientIpWhitelist.alto && cdn.clientIpWhitelist.alto.length > 0)
+                    )
+                  ) { %>
+                <div class="control-group">
+                  <label class="control-label" for="alwaysUseForWhitelistedClients">Override loadbalancer for whitelisted IPs?</label>
+                  <div class="controls">
+                    <label class="uniform">
+                      <input class="uniform_on" type="checkbox" id="alwaysUseForWhitelistedClients" <%= provider.loadBalancer && provider.loadBalancer.alwaysUseForWhitelistedClients ? 'checked' : '' %>>
+                    </label>
+                    <p class="help-block">This CDN is configured with a whitelist, which is a list of IP addresses that are permitted to use it. You can choose to override the load balancer and always send whitelisted clients to this CDN provider.</p>
+                  </div>
+                </div>
+              <% } %>
               <% if (cdn.driver === 'cdns:cdn:driver:amazon') { %>
                 <h5>Signed URL generation</h5>
                 <div class="control-group">

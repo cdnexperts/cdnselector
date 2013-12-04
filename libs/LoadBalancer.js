@@ -80,7 +80,7 @@ proto.balance = function (cdns, distrib, options) {
     // Examine each provider and compare the percentage of requests that were actually directed to
     // this provider (percentActual) with the configured percentTarget.
     // Priority is given to the providers that are furthest behind target
-    if (distrib && distrib.providers) {
+    if (distrib && distrib.providers && distrib.selectionMode === 'loadbalance') {
         distrib.providers.forEach(function (provider) {
             if (provider.loadBalancer) {
                 var providerCount = this.requestsByDistrib[distrib._id] ? this.requestsByDistrib[distrib._id].requestByProvider[provider.id] : 0;
