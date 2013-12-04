@@ -43,12 +43,22 @@ proto.selectSurrogate = function (clientRequest, callback) {
         reqUrlRaw = 'http://' + reqHost + clientRequest.url,
         reqUrl = encodeURIComponent(reqUrlRaw),
         clientIp = clientRequest.socket.remoteAddress,
-        velocixRequest,
-        requestOptions = {
+        velocixRequest;
+
+    if (!this.sscsEndpoint) {
+        // Server-side cache selection is not configured.
+        // Use the BaseCDN implementation to ensure that this is treated like any other CDN.
+        VelocixCDN.super_.prototype.selectSurrogate.call(this, clientRequest, callback);
+        return;
+    }
+
+
+    var requestOptions = {
             host: this.sscsEndpoint.host,
             port: this.sscsEndpoint.port,
             path: this.sscsEndpoint.path + '?cs-uri=' + reqUrl + '&c-ip=' + clientIp + '&numcaches=1'
         };
+
 
 
     // Query the Velocix SSCSv2 API to see where it would like us to send this request.

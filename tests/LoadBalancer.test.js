@@ -23,6 +23,7 @@ describe('LoadBalancer', function () {
 
         distrib = {
             _id: 'one',
+            selectionMode: 'loadbalance',
             providers: [
                 {
                     id: 'cdn1',
