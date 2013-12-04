@@ -9,6 +9,7 @@ Policies can be defined for each service to allow:
 * Failover to a backup CDN in the event that the primary CDN is unavailable or too busy to serve. This can allow the capacity of your in-house CDN to be augmented by that of a global CDN in times of peak demand.
 * Real-time control over CDN selection - at the flick of a switch traffic can be directed to an alternative CDN. This can be used to ensure service continuity in the event of a CDN failure, or as a tool to aid migration to a new CDN provider.
 * Secured access to content using Token Authentication. Inbound requests can be authenticated to ensure that the content is being requested by an authorized user. CDN Selector automatically generates the appropriate token format for the target CDN.
+* Load Balancing traffic  across multiple CDNs (e.g, 50% traffic to CDN A, 30% to CDN B, and 20% to CDN C). This can also be used to keep content 'fresh' in your backup CDN by sending a small number of requests in the event of failover.
 
 
 Features that may appear in future releases include:
@@ -16,7 +17,6 @@ Features that may appear in future releases include:
 * CDN selection based on the client's geographical location (e.g, direct USA based customers to one CDN, and European customers to another). This feature can also deny access to clients based on their location (i.e, GeoBlocking).
 * CDN selection based on the availability and response times of content on each target CDN.
 * Time of day based CDN selection. For example, during hours of low demand video content can be served directly from in-house CDN, or even direct from the origin servers. At peak hours, requests can be directed to a CDN.
-* Traffic sharing across multiple CDNs (e.g, 50% traffic to CDN A, 30% to CDN B, and 20% to CDN C). This can also be used to keep content 'fresh' in your backup CDN by sending a small number of requests in the event of failover.
 * Demand based CDN selection. For example, if the number of requests per second exceeds a pre-set threshold, use CDN A, otherwise use CDN B.
 * Content based CDN selection, where the URL path can be used to determine which CDN to use.
 * Device based CDN selection, where the type of client device can be used to determine which CDN to use.
@@ -31,6 +31,10 @@ Installation instructions are on the wiki at https://github.com/tonyshearer/cdns
 See the project wiki at : https://github.com/tonyshearer/cdnselector/wiki
 
 # Changelog
+
+## Release 0.4.0
+* Load balancing requests across multiple CDNs
+* Improved admin GUI so it scales to more CDN providers (the previous design was limited by the width of the screen).
 
 ## Release 0.3.0
 * Made the project generic for open source release.
