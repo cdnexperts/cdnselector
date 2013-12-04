@@ -5,10 +5,12 @@
         <title>CDN Selector Admin Console</title>
         <!-- Bootstrap -->
         <link href="vendors/jquery-ui.css" rel="stylesheet" media="screen"/>
-        <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
-        <link href="bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet" media="screen">
-        <link href="vendors/DT_bootstrap.css" rel="stylesheet" media="screen">
-        <link href="assets/styles.css" rel="stylesheet" media="screen">
+        <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen"/>
+        <link href="bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet" media="screen"/>
+        <link href="vendors/DT_bootstrap.css" rel="stylesheet" media="screen"/>
+        <link href="assets/styles.css" rel="stylesheet" media="screen"/>
+        <link href="vendors/font-awesome-4.0.3/css/font-awesome.min.css" rel="stylesheet" media="screen">
+
         <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="vendors/flot/excanvas.min.js"></script><![endif]-->
         <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
         <!--[if lt IE 9]>
@@ -23,6 +25,7 @@
         <script src="bootstrap/js/bootstrap.min.js"></script>
         <script src="vendors/datatables/js/jquery.dataTables.min.js"></script>
         <script src="vendors/DT_bootstrap.js"></script>
+        <script src="vendors/partitionslider.js"></script>
     </head>
 
     <body>
@@ -65,7 +68,6 @@
                   </div>
                   <div id="errorBox" class="span9 alert alert-error alert-block hide">
                     <a class="close" data-dismiss="alert" href="#">&times;</a>
-                    <h4 class="alert-heading">Error!</h4>
                     <p>An unknown error occured.</p>
                   </div>
                   <div id="content" class="span9"></div>
@@ -170,14 +172,31 @@
                               <li><a href="#cdn-provider-tab">CDN Providers</a></li>
                               <li><a href="#token-auth-tab">Token Authentication</a></li>
                             </ul>
-                            <div id="cdn-provider-tab" class="row-fluid">
-                              <div id="providerList" class="span11">
+                            <div id="cdn-provider-tab">
+                              <div class="control-group">
+                                    <label class="control-label" for="name">Selection Mode</label>
+                                    <div class="controls">
+                                      <select class="input-xlarge focused" id="selectionMode">
+                                        <option value="failover">Failover - always use the best available CDN</option>
+                                        <option value="loadbalance">Loadbalance - spread the load across multiple CDNs</option>
+                                      </select>
+                                    </div>
+                              </div>
+                              <div class="control-group hide" id="loadBalancer">
+                                    <label class="control-label" for="name">Balance percentages</label>
+                                    <div class="controls">
+                                      <div id="partition" class="input-block-level"></div>
+                                      <p class="help-block">Drag the arrows to adjust the target traffic percentage for each CDN.</p>
+                                    </div>
+
+                              </div>
+                              <div id="providerList" class="row-fluid">
                                 <% _.each(providers, function(provider, index, list) { %>
                                   <% if (provider.active) { %>
                                     <div class="moveable row-fluid providerRow" id="<%=provider.id %>">
-                                      <div class="span1"><span class="ui-icon ui-icon-arrowthick-2-n-s"></span></div>
+                                      <div class="span1 actionIcon"></div>
                                       <div class="span8">
-                                        <p><strong><%= provider.cdn ? provider.cdn.name : provider.id %></strong></p>
+                                        <p><strong><%= provider.cdn ? provider.cdn.name : provider.id %></strong><span class="percentText"></span></p>
                                         <p><%= provider.hostname ? provider.hostname : 'No hostname configured' %></p>
                                       </div>
                                       <div class="span3"><button class="btn btn-primary edit editProvider" id="<%= provider.id %>">Configure</button></div>
@@ -188,7 +207,7 @@
                                 <% _.each(providers, function(provider, index, list) { %>
                                   <% if (!provider.active) { %>
                                     <div class="moveable row-fluid inactiveProviderRow" id="<%=provider.id %>">
-                                      <div class="span1"><span class="ui-icon ui-icon-arrowthick-2-n-s"></span></div>
+                                      <div class="span1 actionIcon"></div>
                                       <div class="span8">
                                         <p><strong><%= provider.cdn ? provider.cdn.name : provider.id %></strong></p>
                                         <p><%= provider.hostname ? provider.hostname : 'No hostname configured' %></p>
@@ -199,7 +218,6 @@
                                 <% }); %>
                                 <div class="row-fluid ui-state-disabled"></div>
                               </div>
-                              <div class="span1"></div>
                             </div>
                             <div id="token-auth-tab" class="row-fluid">
                               <div class="span12">

@@ -5,10 +5,16 @@ var DistributionFormView = Backbone.View.extend({
     events: {
         "click #btnSaveDistribution": "saveDistribution",
         "click #btnSaveDistribution": "saveDistribution",
-        "click .editProvider": "onConfigureProviderClick"
+        "click .editProvider": "onConfigureProviderClick",
+        "change #selectionMode": "renderProviderEditor"
     },
 
+    defaultColors: ['blue', 'fuchsia', 'green',
+             'lime', 'maroon', 'navy', 'olive', 'orange', 'purple',
+             'red', 'silver', 'teal', 'yellow', 'aqua', 'black', 'gray'],
+
     initialize: function() {
+        var self = this;
         $('#content').html(this.$el);
         if (!this.model) {
             this.model = new Distribution();
@@ -16,6 +22,9 @@ var DistributionFormView = Backbone.View.extend({
         this.render();
         this.model.on('invalid', this.renderError, this);
         this.model.on('change:providers', this.render, this);
+
+        // When the window resizes we must redraw the load balancer
+        $(window).bind("resize.app", _.bind(this.render, this));
     },
 
     close: function() {
@@ -28,6 +37,7 @@ var DistributionFormView = Backbone.View.extend({
     },
 
     render: function() {
+        console.log('render');
         var templateParams = _.clone(this.model.attributes);
         if (this.model.isValid()) {
             $('#errorBox').hide();
@@ -68,16 +78,197 @@ var DistributionFormView = Backbone.View.extend({
 
         // Apply the jQuery tabs
         $('#categoryTabs').tabs()
+
+        $('#selectionMode').val(this.getSelectionMode());
+        this.renderProviderEditor();
+
+        return this;
+    },
+
+    getSelectionMode: function() {
+        // Set the initial value of the selection mode dropdown.
+        // If any of the providers have a load balancer that means that load
+        // balancing is enabled.
+        var providers = this.model.get('providers');
+
+        for (var i = 0; i < providers.length; i++) {
+            if (providers[i].loadBalancer) {
+                return 'loadbalance';
+            }
+        }
+        return 'failover';
+    },
+
+    renderProviderEditor: function() {
+        var self = this;
+
+        // Let the user drag and drop the providers into order
         $('#providerList').sortable({
             cursor: "move",
             axis: "y",
             revert: true,
-            cancel: ".ui-state-disabled"
+            cancel: ".ui-state-disabled",
+            update: function(event, ui) {
+                var oldProviders = self.model.get('providers');
+                var newProviders = [];
+                var isActive = true;
+                $('#providerList > div').each(function (i, el) {
+                    if ($(el).hasClass('inactiveHeading')) {
+                        isActive = false;
+                        return;
+                    }
+
+                    var provider = _.findWhere(oldProviders, { id: el.id });
+                    if (provider) {
+                        provider.active = isActive;
+                        if (provider.loadBalancer) {
+                            provider.loadBalancer = isActive ? provider.loadBalancer : null;
+                        }
+                        var cdn = self.options.cdnCollection.get(provider.id);
+                        provider.driver = cdn.get('driver');
+                        provider.name = cdn.get('name');
+                        delete provider.cdn;
+                        newProviders.push(provider);
+                    }
+                });
+
+                console.log(newProviders);
+                self.model.set('providers', newProviders);
+                self.model.trigger('change:providers');
+            }
         });
+        this.renderLoadBalancer();
+    },
 
+    assignColor: function(color) {
+        if (!this.colors || this.colors.length === 0) {
+            this.colors = this.defaultColors.slice(0);
+        }
 
-        this.renderTabs();
-        return this;
+        if (color) {
+            // A specific color was requested.
+            var pos = _.indexOf(this.colors, color);
+            if (pos > -1) {
+                // Remove the color so no one else gets it
+                this.colors.splice(pos, 1);
+            }
+            return color;
+        }
+
+        // Auto-assign a color.
+        return this.colors.splice(0,1)[0];
+    },
+
+    renderLoadBalancer: function() {
+        var self = this,
+            providerIds = [],
+            percentages = [],
+            colors = [],
+            sumOfLoads = 0,
+            providerCount = 0,
+            providers = this.model.get('providers'),
+            i;
+
+        if ($('#selectionMode option:selected').val() !== 'loadbalance') {
+            // Remove the load balancer UI bits
+            $('#providerList div.actionIcon')
+                .addClass('fa fa-3x fa-sort')
+                .removeClass('actionIconColor')
+                .css('background-color', '');
+
+            $('#providerList .percentText').text('');
+            $('#partition').html('');
+            $('#loadBalancer').addClass('hide');
+
+            // Remove the load balancer from the model
+            for (var i = 0; i < providers.length; i++) {
+                delete providers[i].loadBalancer;
+            }
+            return;
+        }
+
+        // Remove the positioning arrows and add colour coding
+        $('#providerList div.actionIcon').removeClass('fa fa-3x fa-sort').addClass('actionIconColor');
+        $('#loadBalancer').removeClass('hide');
+
+        // Calculate the total of the load percentages
+        //(just in case they are not a percentage for some reason)
+        for (i = 0; i < providers.length; i += 1) {
+            var provider = providers[i];
+            if (provider.active) {
+                providerCount += 1;
+
+                if (provider.loadBalancer && isFinite(provider.loadBalancer.targetLoadPercent)) {
+                    sumOfLoads += provider.loadBalancer.targetLoadPercent;
+                }
+            }
+        }
+
+        for (i = 0; i < providers.length; i += 1) {
+            var provider = providers[i];
+            if (provider.active) {
+                providerIds.push(provider.id);
+                colors.push(this.assignColor(provider.color));
+
+                if (sumOfLoads === 0) {
+                    // If the load balancer isn't configured then present the user with the load
+                    // evenly spread across all active providers
+                    percentages.push(Math.round(100 / providerCount));
+                } else if (provider.loadBalancer && isFinite(provider.loadBalancer.targetLoadPercent)) {
+                    // If any providers have a load balancer configured then configure the view to show
+                    // relative percentages
+                    percentages.push(Math.round((provider.loadBalancer.targetLoadPercent / sumOfLoads) * 100));
+                } else {
+                    // This provider doesn't have a load balance target, but they should be present in the list
+                    // at 0%
+                    percentages.push(0);
+                }
+            }
+        }
+
+        // Setup the partition editor
+        $('#partition').html('');
+        $('#partition').PartitionSlider({
+            values: percentages,
+            colors: colors,
+            create: function(values, colors){
+                for (var i = 0; i < values.length; i++) {
+                    var providerId = providerIds[i].replace(/:/g, '\\:');
+                    var $providerRow = $('#' + providerId);
+                    $providerRow.find('.percentText').text(' : ' + values[i] + '%');
+                    $providerRow.find('.actionIcon').html('').css('background-color', colors[i]);
+
+                    var provider = _.findWhere(self.model.get('providers'), { id: providerIds[i] });
+                    provider.color = colors[i];
+                }
+            },
+
+            onCursorDrag: function(cursor, values){
+                for (var i = 0; i < values.length; i++) {
+                    var providerId = providerIds[i].replace(/:/g, '\\:');
+                    var $providerRow = $('#' + providerId);
+                    $providerRow.find('.percentText').text(' : ' + values[i] + '%');
+                    if (i === cursor || i === cursor + 1) {
+                        $providerRow.find('.percentText').parent()
+                            .css('color', 'red')
+                            .css('font-weight', 600);
+                    }
+                }
+            },
+
+            onCursorDragComplete: function(values) {
+                // Update the model
+                for (var i = 0; i < values.length; i++) {
+                    var provider = _.findWhere(self.model.get('providers'), { id: providerIds[i] });
+
+                    if (!provider.loadBalancer) {
+                        provider.loadBalancer = {};
+                    }
+                    provider.loadBalancer.targetLoadPercent = values[i];
+                }
+                self.model.trigger('change:providers');
+            }
+        });
     },
 
     renderError: function(model, err, options) {
@@ -88,50 +279,6 @@ var DistributionFormView = Backbone.View.extend({
         Utils.scrollToTop();
     },
 
-    renderTabs: function() {
-        var tabs = $("#tabs", this.el),
-            self = this;
-
-        // helper function to get the position of providers in the array by id
-        function getProviderOrder(id) {
-            var position = -1;
-            self.model.get('providers').forEach(function(provider, index) {
-                if (provider.id === id) {
-                    position = index;
-                }
-            });
-            return position;
-        }
-
-        function relabelTabs(tabs) {
-            // Change the text on the tab heads to reflect the order
-            tabs.find("ul.tabHeads li a").each(function(index, a) {
-                var pos = index + 1;
-                var tabText = $(a).text().replace(/.*: /, '');
-                $(a).text('Priority ' + pos + ': ' + tabText);
-            });
-        }
-
-        // Re-arrange the tab heads according to the provider order
-        tabs.find('ul.tabHeads').html(tabs.find("ul.tabHeads li").sort(function(a, b) {
-            var aPos = getProviderOrder($('a', a).attr('id').replace('TabHead', '')),
-                bPos = getProviderOrder($('a', b).attr('id').replace('TabHead', ''));
-
-            return aPos - bPos;
-        }));
-        relabelTabs(tabs);
-
-        // Activate the tab plugin
-        tabs.tabs();
-        tabs.find( ".ui-tabs-nav" ).sortable({
-            axis: "x",
-            stop: function() {
-                relabelTabs(tabs);
-                tabs.tabs("refresh");
-            }
-        });
-
-    },
 
     onConfigureProviderClick: function(e) {
         this.updateModelFromForm();
@@ -169,34 +316,19 @@ var DistributionFormView = Backbone.View.extend({
             });
         }
         this.model.set(distribution);
-
-        var oldProviders = this.model.get('providers');
-        var newProviders = [];
-        var isActive = true;
-        $('#providerList > div').each(function (i, el) {
-            if ($(el).hasClass('inactiveHeading')) {
-                isActive = false;
-                return;
-            }
-
-            var provider = _.findWhere(oldProviders, { id: el.id });
-            if (provider) {
-                provider.active = isActive;
-                var cdn = self.options.cdnCollection.get(provider.id);
-                provider.driver = cdn.get('driver');
-                provider.name = cdn.get('name');
-                delete provider.cdn;
-                newProviders.push(provider);
-            }
-        });
-
-        this.model.set('providers', newProviders);
     },
 
     saveDistribution: function(e) {
         e.preventDefault();
         var self = this;
         this.updateModelFromForm();
+        var providers = this.model.get('providers');
+
+        // Remove CDN references
+        for (var i = 0; i < providers.length; i++) {
+            delete providers[i].cdn;
+        }
+
         this.model.save({}, {
             wait: true,
             success: function(model, response, options) {
