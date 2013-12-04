@@ -118,7 +118,7 @@ var DistributionFormView = Backbone.View.extend({
                         newProviders.push(provider);
                     }
                 });
-
+                self.updateModelFromForm();
                 self.model.set('providers', newProviders);
                 self.model.trigger('change:providers');
             }
