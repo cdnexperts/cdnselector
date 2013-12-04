@@ -84,28 +84,36 @@ var DistributionsView = Backbone.View.extend({
                 { "sTitle": "Served by CDNs",   "mDataProp": "providers" },
                 { "sTitle": "Actions",   "mDataProp": "name" }
             ],
-            "fnRowCallback": function( nRow, aData, iDisplayIndex ) {
-                $('td:eq(0)', nRow).html(aData.name || aData._id);
-                $('td:eq(1)', nRow).html(aData.hostnames.join('<br/>'));
+            "fnRowCallback": function( nRow, distrib, iDisplayIndex ) {
+                $('td:eq(0)', nRow).html(distrib.name || distrib._id);
+                $('td:eq(1)', nRow).html(distrib.hostnames.join('<br/>'));
 
-                var cdnList = '<ol>';
-                for (var i = 0; i < aData.providers.length; i++) {
-                    if (aData.providers[i].active) {
+                var cdnList = '<ul style="list-style-type: none; padding:0; margin:0;">';
+                var activeCount = 0;
+                for (var i = 0; i < distrib.providers.length; i++) {
+                    if (distrib.providers[i].active) {
                         if (cdnCollection) {
-                            var cdn = cdnCollection.get(aData.providers[i].id);
+                            var cdn = cdnCollection.get(distrib.providers[i].id);
                             if (cdn) {
-                                cdnList += '<li>' + cdn.get('name') + '</li>';
+                                cdnList += '<li>'
+                                if (distrib.selectionMode === 'loadbalance') {
+                                    cdnList += distrib.providers[i].loadBalancer ? distrib.providers[i].loadBalancer.targetLoadPercent || 0 : 0;
+                                    cdnList += '% ';
+                                } else {
+                                    cdnList += (++activeCount) + '. ';
+                                }
+                                cdnList += cdn.get('name') + '</li>';
                             }
                         }
                     }
                 }
-                cdnList += '</ol>'
+                cdnList += '</ul>';
                 $('td:eq(2)', nRow).html(cdnList);
 
-                if(aData._id) {
+                if(distrib._id) {
                     $('td:eq(3)', nRow).html(
-                        '<a href="#distributions/' + aData._id + '" class="btn btn-primary edit">Edit</a> &nbsp;' +
-                        '<button value="' + aData._id + '" class="btn btn-danger delete">Delete</button>'
+                        '<a href="#distributions/' + distrib._id + '" class="btn btn-primary edit">Edit</a> &nbsp;' +
+                        '<button value="' + distrib._id + '" class="btn btn-danger delete">Delete</button>'
                     );
                 } else {
                     $('td:eq(3)', nRow).html('Saving...');

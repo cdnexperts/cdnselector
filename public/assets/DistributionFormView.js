@@ -37,7 +37,6 @@ var DistributionFormView = Backbone.View.extend({
     },
 
     render: function() {
-        console.log('render');
         var templateParams = _.clone(this.model.attributes);
         if (this.model.isValid()) {
             $('#errorBox').hide();
