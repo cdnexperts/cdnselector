@@ -218,6 +218,7 @@ var DistributionFormView = Backbone.View.extend({
         $('#partition').PartitionSlider({
             values: percentages,
             colors: colors,
+
             create: function(values, colors){
                 for (var i = 0; i < values.length; i++) {
                     var providerId = providerIds[i].replace(/:/g, '\\:');
@@ -225,8 +226,12 @@ var DistributionFormView = Backbone.View.extend({
                     $providerRow.find('.percentText').text(' : ' + values[i] + '%');
                     $providerRow.find('.actionIcon').html('').css('background-color', colors[i]);
 
-                    var provider = _.findWhere(self.model.get('providers'), { id: providerIds[i] });
+                    var provider = _.findWhere(providers, { id: providerIds[i] });
                     provider.color = colors[i];
+                    if (!provider.loadBalancer) {
+                        provider.loadBalancer = {};
+                    }
+                    provider.loadBalancer.targetLoadPercent = values[i];
                 }
             },
 
@@ -246,11 +251,7 @@ var DistributionFormView = Backbone.View.extend({
             onCursorDragComplete: function(values) {
                 // Update the model
                 for (var i = 0; i < values.length; i++) {
-                    var provider = _.findWhere(self.model.get('providers'), { id: providerIds[i] });
-
-                    if (!provider.loadBalancer) {
-                        provider.loadBalancer = {};
-                    }
+                    var provider = _.findWhere(providers, { id: providerIds[i] });
                     provider.loadBalancer.targetLoadPercent = values[i];
                 }
                 self.model.trigger('change:providers');
