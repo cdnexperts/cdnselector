@@ -34,8 +34,8 @@ var dbDocs = {
        "type": "cdns:distribution",
        "selectionMode": "loadbalance",
        "hostnames": [
-           "demo.cdnexperts.net",
-           "localhost"
+           "example.cdnexperts.net",
+           "alternative.example.com"
        ],
        "providers": [
            {
