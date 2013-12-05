@@ -35,6 +35,7 @@ See the project wiki at : https://github.com/tonyshearer/cdnselector/wiki
 ## Release 0.4.0
 * Load balancing requests across multiple CDNs
 * Improved admin GUI so it scales to more CDN providers (the previous design was limited by the width of the screen).
+* Password protection of the Admin GUI (defaults to admin/admin)
 
 ## Release 0.3.0
 * Made the project generic for open source release.
