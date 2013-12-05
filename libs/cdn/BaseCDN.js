@@ -82,7 +82,15 @@ proto.selectSurrogate = function (clientRequest, callback) {
         }
 
         // Re-write the URL for this CDN
-        this.rewriteUrl(targetUrl, inboundToken, provider);
+        logger.debug('BaseCDN targetUrl before rewrite:', targetUrl);
+        try {
+            this.rewriteUrl(targetUrl, inboundToken, provider);
+        } catch (e) {
+            logger.warn('URL rewrite failed for this provider: ' + e);
+            callback(null, reqUrl, null, null, true);
+            return;
+        }
+        logger.debug('BaseCDN targetUrl after rewrite:', targetUrl);
 
         if (inboundToken) {
             // Validate the token
@@ -98,7 +106,6 @@ proto.selectSurrogate = function (clientRequest, callback) {
                 return;
             }
         }
-
         callback(null, reqUrl, url.format(targetUrl), null, true);
     }
 };
@@ -107,6 +114,9 @@ proto.selectSurrogate = function (clientRequest, callback) {
 proto.rewriteUrl = function (targetUrl, inboundTokenParams, provider) {
     // May be overriden by specific implementation for path rewrites, etc.
     // By default just inject the target CDN's hostname
+    if (!provider.hostname) {
+        throw new Error('No hostname is set on this provider');
+    }
     targetUrl.host = provider.hostname;
     return targetUrl;
 };

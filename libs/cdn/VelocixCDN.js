@@ -48,17 +48,18 @@ proto.selectSurrogate = function (clientRequest, callback) {
     if (!this.sscsEndpoint) {
         // Server-side cache selection is not configured.
         // Use the BaseCDN implementation to ensure that this is treated like any other CDN.
+        errorlog.debug('SSCS is disabled, so using  BaseCDN to handle request');
         VelocixCDN.super_.prototype.selectSurrogate.call(this, clientRequest, callback);
         return;
     }
 
 
     var requestOptions = {
-            host: this.sscsEndpoint.host,
-            port: this.sscsEndpoint.port,
-            path: this.sscsEndpoint.path + '?cs-uri=' + reqUrl + '&c-ip=' + clientIp + '&numcaches=1'
-        };
-
+        host: this.sscsEndpoint.host,
+        port: this.sscsEndpoint.port,
+        path: this.sscsEndpoint.path + '?cs-uri=' + reqUrl + '&c-ip=' + clientIp + '&numcaches=1'
+    };
+    errorlog.debug('Using SSCS to resolve redirection target', requestOptions);
 
 
     // Query the Velocix SSCSv2 API to see where it would like us to send this request.
