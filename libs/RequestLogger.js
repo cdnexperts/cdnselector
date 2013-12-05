@@ -21,7 +21,7 @@ function RequestLogger(rotationInterval, directory) {
         },
         rotateLogs = function () {
             self.closeFile();
-            createFile();
+            self.createFile();
         };
     // End private functions
 
