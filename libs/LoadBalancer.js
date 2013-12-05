@@ -105,10 +105,6 @@ proto.balance = function (cdns, distrib, options) {
             }
         }, this);
 
-        if (global.DEBUG) {
-            logger.debug('---');
-        }
-
         // Re-order the list according to the calculated sortOrders
         loadBalancedCdns = cdns.sort(sortFunction);
     }

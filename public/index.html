@@ -212,7 +212,14 @@
                                     <div class="moveable row-fluid providerRow" id="<%=provider.id %>">
                                       <div class="span1 actionIcon"></div>
                                       <div class="span8">
-                                        <p><strong><%= provider.cdn ? provider.cdn.name : provider.id %></strong><span class="percentText"></span></p>
+                                        <p>
+                                          <% if (provider.cdn.clientIpWhitelist
+                                              && ((provider.cdn.clientIpWhitelist.manual && provider.cdn.clientIpWhitelist.manual.length > 0)
+                                                || (provider.cdn.clientIpWhitelist.alto && provider.cdn.clientIpWhitelist.alto.length > 0))) { %>
+                                            <i class="fa fa-lock" title="Access restricted by Client IP Whitelist"></i>
+                                          <% } %>
+                                          <strong><%= provider.cdn ? provider.cdn.name : provider.id %></strong><span class="percentText"></span>
+                                        </p>
                                         <p><%= provider.hostname ? provider.hostname : 'No hostname configured' %></p>
                                       </div>
                                       <div class="span3"><button class="btn btn-primary edit editProvider" id="<%= provider.id %>">Configure</button></div>
@@ -225,7 +232,14 @@
                                     <div class="moveable row-fluid inactiveProviderRow" id="<%=provider.id %>">
                                       <div class="span1 actionIcon"></div>
                                       <div class="span8">
-                                        <p><strong><%= provider.cdn ? provider.cdn.name : provider.id %></strong></p>
+                                        <p>
+                                          <% if (provider.cdn.clientIpWhitelist
+                                              && ((provider.cdn.clientIpWhitelist.manual && provider.cdn.clientIpWhitelist.manual.length > 0)
+                                                || (provider.cdn.clientIpWhitelist.alto && provider.cdn.clientIpWhitelist.alto.length > 0))) { %>
+                                            <i class="fa fa-lock" title="Access restricted by Client IP Whitelist"></i>
+                                          <% } %>
+                                          <strong><%= provider.cdn ? provider.cdn.name : provider.id %></strong>
+                                        </p>
                                         <p><%= provider.hostname ? provider.hostname : 'No hostname configured' %></p>
                                       </div>
                                       <div class="span3"><button class="btn btn-primary edit editProvider" id="<%= provider.id %>">Configure</button></div>
