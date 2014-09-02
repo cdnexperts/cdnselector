@@ -22,13 +22,13 @@ Features that may appear in future releases include:
 * Device based CDN selection, where the type of client device can be used to determine which CDN to use.
 * Improved network location based routing policies using public databases to identify ISPs.
 
-See the [feature backlog](https://github.com/tonyshearer/cdnselector/issues?labels=feature&page=1&state=open) for more details.
+See the [feature backlog](https://github.com/cdnexperts/cdnselector/issues?labels=feature&page=1&state=open) for more details.
 
 ## Installation
-Installation instructions are on the wiki at https://github.com/tonyshearer/cdnselector/wiki/Installation-Instructions
+Installation instructions are on the wiki at https://github.com/cdnexperts/cdnselector/wiki/Installation-Instructions
 
 # More documentation
-See the project wiki at : https://github.com/tonyshearer/cdnselector/wiki
+See the project wiki at : https://github.com/cdnexperts/cdnselector/wiki
 
 # Changelog
 
