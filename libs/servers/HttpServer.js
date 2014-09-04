@@ -7,7 +7,7 @@ var http = require('http'),
     EventEmitter = require('events').EventEmitter,
     errorlog = require('winston');
 
-function HttpServer(port, cdnSelector, requestLogger) {
+function HttpServer(port, cdnSelector, requestLogger, tokenValidator) {
 	var self = this;
 	this.port = port;
 
@@ -31,7 +31,7 @@ function HttpServer(port, cdnSelector, requestLogger) {
 	}
 
 
-	function selectSurrogateFromAvailableCdns(cdnList, request, response, preferredCdn, distrib) {
+	function selectSurrogateFromAvailableCdns(cdnList, request, response, preferredCdn, distrib, inboundToken) {
 
 		var cdn = cdnList.shift(),
 			remoteAddress = request.connection.remoteAddress,
@@ -40,35 +40,14 @@ function HttpServer(port, cdnSelector, requestLogger) {
 			code;
 
 
-		cdn.selectSurrogate(request, function (err, requestUrl, targetUrl, location, authOk) {
+		cdn.selectSurrogate(request, inboundToken, function (err, requestUrl, targetUrl, location) {
 
-			if (!authOk) {
-				code = 401;
-				sendErrorResponse(response, code, 'Unauthorized');
-
-				// Log this error in the access log
-				requestLogger.log(
-					'http',
-					remoteAddress,
-					requestUrl,
-					'-',
-					code,
-					'-',
-					preferredCdn.toString(),
-					'-',
-					request.headers['user-agent'],
-					localAddress,
-					remotePort
-				);
-				// error log
-				errorlog.info('Invalid authentication for request : ' + requestUrl);
-
-			} else if (err || !targetUrl) {
+			if (err || !targetUrl) {
 				// There was an error whilst determining the CDN surrogate to use
 				// , or the CDN is currently not able to serve this request
 				// Are there any others in the list that can be used instead?
 				if (cdnList.length > 0) {
-					selectSurrogateFromAvailableCdns(cdnList, request, response, preferredCdn, distrib);
+					selectSurrogateFromAvailableCdns(cdnList, request, response, preferredCdn, distrib, inboundToken);
 				} else {
 					// No CDNs available
 					code = 503;
@@ -127,7 +106,33 @@ function HttpServer(port, cdnSelector, requestLogger) {
 			cdnSelection = cdnSelector.selectNetworks(clientIp, hostname);
 
 		if (cdnSelection.cdns && cdnSelection.cdns.length > 0) {
-			selectSurrogateFromAvailableCdns(cdnSelection.cdns, request, response, cdnSelection.cdns[0], cdnSelection.distribution);
+			// Search for a token in the inbound request
+			// All candidate CDNs will be asked
+
+			var inboundToken = tokenValidator.extractInboundToken(cdnSelector.getAllCDNs(), request);
+			if (inboundToken && inboundToken.isPresent && !inboundToken.isValid) {
+				code = 401;
+				sendErrorResponse(response, code, 'Unauthorized');
+
+				// Log this error in the access log
+				requestLogger.log(
+					'http',
+					clientIp,
+					'http://' + hostname + request.url,
+					'-',
+					code,
+					'-',
+					cdnSelection.cdns[0].toString(),
+					'-',
+					request.headers['user-agent'],
+					request.connection.localAddress,
+					request.connection.remotePort
+				);
+				// error log
+				errorlog.info('Invalid authentication for request : http://' + hostname + request.url);
+			} else {
+				selectSurrogateFromAvailableCdns(cdnSelection.cdns, request, response, cdnSelection.cdns[0], cdnSelection.distribution, inboundToken);
+			}
 		} else {
 			var code = 503;
 			sendErrorResponse(response, code, 'Service Unavailable');

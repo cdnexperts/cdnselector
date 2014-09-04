@@ -47,7 +47,7 @@ function RequestLogger(rotationInterval, directory) {
                 if (err.code === 'ENOENT') {
                     fs.mkdir(directory, function (err) {
                         if (!err) {
-                            createFile();
+                            self.createFile();
                         } else {
                             errorlog.error("Cannot create log directory : " + err);
                         }

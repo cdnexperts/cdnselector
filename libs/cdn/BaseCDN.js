@@ -41,44 +41,70 @@ function BaseCDN(id, config, distribs) {
 var proto = BaseCDN.prototype;
 
 /**
+ * Returns the configuration for how this hostname interacts with
+ * this CDN (the provider config).
+ * @param {object or string} clientRequest - the request object from node, or a string containing the hostname
+ * @returns {object} the provider object, or null if not found
+ */
+proto.getProvider = function(clientRequest) {
+
+    var self = this,
+        reqHost = clientRequest,
+        distrib,
+        provider = null;
+
+
+    if (typeof clientRequest != 'string') {
+        reqHost = clientRequest.headers.host.split(":")[0]
+    }
+    distrib = this.distribs.getByHostname(reqHost);
+
+    if (distrib && distrib.providers) {
+        for (var i = 0; i < distrib.providers.length; i+=1) {
+            if (distrib.providers[i].id == this.id) {
+                provider = distrib.providers[i];
+                break;
+            }
+        }
+    }
+    return provider;
+};
+
+/**
  * Selects the most appropriate target URL for this CDN.
  * @param {object} clientRequest - The request object from node.
  * @param {function} callback - A callback, with paramaters error, requestUrl, targetUrl, location, authOk
  */
  //TODO rename this to something more appropriate
-proto.selectSurrogate = function (clientRequest, callback) {
+proto.selectSurrogate = function(clientRequest, inboundToken, callback) {
     var self = this,
         reqHost = clientRequest.headers.host.split(":")[0],
         reqUrl = 'http://' + reqHost + clientRequest.url,
-        distrib = this.distribs.getByHostname(reqHost),
-        provider,
-        queryString,
-        inboundToken,
-        inboundTokenParams;
+        provider = this.getProvider(reqUrl),
+        queryString;
 
-    if (distrib && distrib.providers) {
-        distrib.providers.forEach(function (prov) {
-            if (prov.id === self.id) {
-                provider = prov;
-            }
-        });
-    }
 
     if (!provider) {
-        logger.info('Hostname ' + reqHost + ' does not have a distribution configured for this provider');
+        logger.info('Hostname ' + reqHost + ' does not have a distribution configured for this CDN');
         callback(null, reqUrl, null, null, true);
     } else {
         // Strip off the inbound token from the URL if present
         var targetUrl = url.parse(reqUrl, true);
 
-        // Check if there was a token on the inbound request
-        inboundToken = tokenValidator.extractInboundToken(clientRequest, distrib.authParam);
 
         // If there is a inbound token on the querystring remove it
-        if (distrib.authParam && targetUrl.query && targetUrl.query[distrib.authParam]) {
-            // Remove the inbound token from the target URL
-            delete targetUrl.query[distrib.authParam];
-            delete targetUrl.search;
+        var tokenIsFromSameCdn = false;
+        if (inboundToken) {
+            tokenIsFromSameCdn = inboundToken.cdn.id === this.id;
+            var tokenIsInUrl = inboundToken.authParam && targetUrl.query && targetUrl.query[inboundToken.authParam];
+
+            // If the inbound token is for this CDN, then its find to let it pass through rather than re-write it
+            // Otherwise it should be removed
+            if (!tokenIsFromSameCdn && tokenIsInUrl) {
+                // Remove the inbound token from the target URL
+                delete targetUrl.query[inboundToken.authParam];
+                delete targetUrl.search;
+            }
         }
 
         // Re-write the URL for this CDN
@@ -92,19 +118,17 @@ proto.selectSurrogate = function (clientRequest, callback) {
         }
         logger.debug('BaseCDN targetUrl after rewrite:', targetUrl);
 
-        if (inboundToken) {
-            // Validate the token
-            if (tokenValidator.tokenIsValid(inboundToken, distrib.authSecrets)) {
-                // Validation OK, generate a token for our target CDN
-                inboundTokenParams = tokenValidator.getTokenParameters(inboundToken);
-                targetUrl = self.generateTokenizedUrl(targetUrl,
-                                inboundTokenParams,
-                                provider);
-            } else {
-                // Validation Failed
-                callback(null, reqUrl, null, null, false);
-                return;
-            }
+
+        if (tokenIsFromSameCdn) {
+            // The inbound token has already been validated, but is from a different
+            // CDN. We need to inject an equivalent token for the target CDN.
+            logger.debug("Inbound request contained a valid token for a different CDN");
+            targetUrl = self.generateTokenizedUrl(targetUrl,
+                            inboundToken,
+                            provider,
+                            clientRequest);
+        } else {
+            logger.debug("Inbound request did not contain a token");
         }
         callback(null, reqUrl, url.format(targetUrl), null, true);
     }
@@ -121,8 +145,9 @@ proto.rewriteUrl = function (targetUrl, inboundTokenParams, provider) {
     return targetUrl;
 };
 
-proto.generateTokenizedUrl = function (targetUrl, inboundTokenParams, provider) {
+proto.generateTokenizedUrl = function (targetUrl, inboundToken, provider, clientRequest) {
     // To be overriden by specific implementation.
+    logger.warn("generateTokenizedUrl not implemented for CDN " + this.id);
     return targetUrl;
 };
 
@@ -140,6 +165,12 @@ proto.isClientIpAllowed = function (ipAddress) {
         return true;
     }
     return this.clientIpWhitelist.find(ipAddress) ? true : false;
+};
+
+proto.extractInboundToken = function(request) {
+    // To be overridden by a specific implementation
+    logger.warn("extractInboundToken not implemented for CDN " + this.id);
+    return null;
 };
 
 proto.toString = function () {

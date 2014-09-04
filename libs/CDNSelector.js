@@ -4,6 +4,7 @@
 var VelocixCDN = require('./cdn/VelocixCDN'),
     GenericOttCDN = require('./cdn/GenericOttCDN'),
     AmazonCloudfront = require('./cdn/AmazonCloudfront'),
+    AkamaiCDN = require('./cdn/AkamaiCDN'),
     logger = require('winston');
 
 function CDNSelector(distribDao, cdnDao, loadBalancer) {
@@ -16,7 +17,8 @@ function CDNSelector(distribDao, cdnDao, loadBalancer) {
         cdnClasses = {
             "cdns:cdn:driver:velocix": VelocixCDN,
             "cdns:cdn:driver:generic": GenericOttCDN,
-            "cdns:cdn:driver:amazon": AmazonCloudfront
+            "cdns:cdn:driver:amazon": AmazonCloudfront,
+            "cdns:cdn:driver:akamai": AkamaiCDN
         };
 
     function loadCdnDriver (id, cdnConfig) {
@@ -58,6 +60,10 @@ function CDNSelector(distribDao, cdnDao, loadBalancer) {
 }
 
 var proto = CDNSelector.prototype;
+
+proto.getAllCDNs =  function() {
+    return this.cdnInstances;
+};
 
 proto.selectNetworks = function (clientIp, hostname) {
     var self = this,

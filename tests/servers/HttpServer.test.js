@@ -14,15 +14,16 @@ describe('HttpServer', function () {
         it('should route the request to 1st choice CDN', function (done) {
 
             var mockCdn1 = {
-                    selectSurrogate: function (request, callback) {
+                    selectSurrogate: function (request, inboundToken, callback) {
                         request.connection.remoteAddress.should.equal('127.0.0.1');
                         request.url.should.equal('/some/path');
+                        inboundToken.id.should.equal('token1');
                         should.exist(callback);
-                        callback(null, 'requestUrl', 'http://cdn1/some/path', 'location', true);
+                        callback(null, 'requestUrl', 'http://cdn1/some/path', 'location');
                     }
                 },
                 mockCdn2 = {
-                    selectSurrogate: function (request, callback) {
+                    selectSurrogate: function (request, inboundToken, callback) {
                         should.fail('The second choice CDN should not have been used');
                     }
                 },
@@ -33,6 +34,9 @@ describe('HttpServer', function () {
                         return {
                                 cdns: [mockCdn1, mockCdn2]
                         };
+                    },
+                    getAllCDNs: function() {
+                        return [mockCdn1, mockCdn2];
                     }
                 },
                 mockRequestLogger = {
@@ -40,7 +44,14 @@ describe('HttpServer', function () {
                         arguments.length.should.equal(11);
                     }
                 },
-                httpServer = new HttpServer(0, mockCdnSelector, mockRequestLogger);
+                mockTokenValidator = {
+                    extractInboundToken: function (cdnList, request) {
+                        cdnList.length.should.equal(2);
+                        (request == null).should.be.false;
+                        return { id: 'token1', isPresent: true, isValid: true };
+                    }
+                },
+                httpServer = new HttpServer(0, mockCdnSelector, mockRequestLogger, mockTokenValidator);
 
 
             httpServer.on('ready', function (port) {
@@ -65,19 +76,20 @@ describe('HttpServer', function () {
 
         it('should fallback to 2nd choice CDN if the first didn\'t route the request', function (done) {
 
-            var
-                mockCdn1 = {
-                    selectSurrogate: function (request, callback) {
+            var mockCdn1 = {
+                    selectSurrogate: function (request, inboundToken, callback) {
                         request.socket.remoteAddress.should.equal('127.0.0.1');
                         request.url.should.equal('/some/path');
-                        callback(null, 'requestUrl', null, null, true);
+                        inboundToken.id.should.equal('token1');
+                        callback(null, 'requestUrl', null, null);
                     }
                 },
                 mockCdn2 = {
-                    selectSurrogate: function (request, callback) {
+                    selectSurrogate: function (request, inboundToken, callback) {
                         request.socket.remoteAddress.should.equal('127.0.0.1');
                         request.url.should.equal('/some/path');
-                        callback(null, 'requestUrl', 'http://cdn2/some/path', 'location', true);
+                        inboundToken.id.should.equal('token1');
+                        callback(null, 'requestUrl', 'http://cdn2/some/path', 'location');
                     }
                 },
                 mockCdnSelector = {
@@ -87,6 +99,9 @@ describe('HttpServer', function () {
                         return {
                             cdns: [mockCdn1, mockCdn2]
                         };
+                    },
+                    getAllCDNs: function() {
+                        return [mockCdn1, mockCdn2];
                     }
                 },
                 mockRequestLogger = {
@@ -94,7 +109,14 @@ describe('HttpServer', function () {
                         arguments.length.should.equal(11);
                     }
                 },
-                httpServer = new HttpServer(0, mockCdnSelector, mockRequestLogger);
+                mockTokenValidator = {
+                    extractInboundToken: function (cdnList, request) {
+                        cdnList.length.should.equal(2);
+                        (request == null).should.be.false;
+                        return { id: 'token1', isPresent: true, isValid: true };
+                    }
+                },
+                httpServer = new HttpServer(0, mockCdnSelector, mockRequestLogger, mockTokenValidator);
 
 
             httpServer.on('ready', function (port) {
@@ -121,13 +143,13 @@ describe('HttpServer', function () {
         it('should fail gracefully if neither CDNs routed the request', function (done) {
             var
                 mockCdn1 = {
-                    selectSurrogate: function (request, callback) {
-                        callback(null, 'requestUrl', null, null, true);
+                    selectSurrogate: function (request, inboundToken, callback) {
+                        callback(null, 'requestUrl', null, null);
                     }
                 },
                 mockCdn2 = {
-                    selectSurrogate: function (request, callback) {
-                        callback(null, 'requestUrl', null, null, true);
+                    selectSurrogate: function (request, inboundToken, callback) {
+                        callback(null, 'requestUrl', null, null);
                     }
                 },
                 mockCdnSelector = {
@@ -137,6 +159,9 @@ describe('HttpServer', function () {
                         return {
                             cdns: [mockCdn1, mockCdn2]
                         };
+                    },
+                    getAllCDNs: function() {
+                        return [mockCdn1, mockCdn2];
                     }
                 },
                 mockRequestLogger = {
@@ -144,7 +169,14 @@ describe('HttpServer', function () {
                         arguments.length.should.equal(11);
                     }
                 },
-                httpServer = new HttpServer(0, mockCdnSelector, mockRequestLogger);
+                mockTokenValidator = {
+                    extractInboundToken: function (cdnList, request) {
+                        cdnList.length.should.equal(2);
+                        (request == null).should.be.false;
+                        return { id: 'token1', isPresent: true, isValid: true };
+                    }
+                },
+                httpServer = new HttpServer(0, mockCdnSelector, mockRequestLogger, mockTokenValidator);
 
 
             httpServer.on('ready', function (port) {
@@ -172,12 +204,12 @@ describe('HttpServer', function () {
             var
                 mockCdn1 = {
                     selectSurrogate: function (request, callback) {
-                        callback(null, 'requestUrl', null, null, true);
+                        callback(null, 'requestUrl', null, null);
                     }
                 },
                 mockCdn2 = {
                     selectSurrogate: function (request, callback) {
-                        callback(null, 'requestUrl', null, null, false);
+                        callback(null, 'requestUrl', null, null);
                     }
                 },
                 mockCdnSelector = {
@@ -187,6 +219,9 @@ describe('HttpServer', function () {
                         return {
                             cdns: [mockCdn1, mockCdn2]
                         }
+                    },
+                    getAllCDNs: function() {
+                        return [mockCdn1, mockCdn2];
                     }
                 },
                 mockRequestLogger = {
@@ -194,7 +229,14 @@ describe('HttpServer', function () {
                         arguments.length.should.equal(11);
                     }
                 },
-                httpServer = new HttpServer(0, mockCdnSelector, mockRequestLogger);
+                mockTokenValidator = {
+                    extractInboundToken: function (cdnList, request) {
+                        cdnList.length.should.equal(2);
+                        (request == null).should.be.false;
+                        return { id: 'token1', isPresent: true, isValid: false };
+                    }
+                },
+                httpServer = new HttpServer(0, mockCdnSelector, mockRequestLogger, mockTokenValidator);
 
 
             httpServer.on('ready', function (port) {

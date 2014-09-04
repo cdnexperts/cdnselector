@@ -2,6 +2,7 @@
 /*global describe, it */
 "use strict";
 var should = require('should'),
+    url = require('url'),
     testUtil = require('../TestUtil'),
     VelocixCDN = require('../../libs/cdn/VelocixCDN'),
 
@@ -52,16 +53,22 @@ var should = require('should'),
 
             return {
                 'testhost.com': {
-                    authParam: 'myVerySecretWord',
                     providers: [
                         {
                             id: 'velocix',
-                            active: true
+                            active: true,
+                            tokens: {
+                                authParam: "authToken",
+                                authSecrets: [
+                                    "secret1",
+                                    "secret2"
+                                ]
+                            }
                         },
                         {
                             id: 'akamai',
                             active: true,
-                            hostname: '66c31a5db47d96799134-07d0dcfc87cc7f17a619f7b9e538157a.r2.cf3.rackcdn.com'
+                            hostname: 'some-vh.akamaihd.net'
                         },
                         {
                             id: 'amazon',
@@ -85,11 +92,355 @@ var should = require('should'),
                 }
             }[hostname];
         }
-    };;
+    };
 
 
-
+// Test tokens generated using openssl. eg,
+// echo -n "path=/*&fn=sha512&expiry=1293280496&x:counter=99123" | openssl dgst -sha512 -hmac "secret1"
+// then base64 encoded using http://www.base64encode.org/
 describe('VelocixCDN', function () {
+    describe('#generateTokenizedUrl', function () {
+        it('should generate a URL with a token that expires at a specific time', function () {
+            var targetUrl = url.parse('http://somehost.com/content/video.m3u8');
+            var inboundToken = {
+                isPresent: true,
+                endTime: 1478799175,
+                acl: '/content/*',
+                payload: {
+                    someKey: 'someValue'
+                }
+            };
+            var clientRequest = {
+                socket: {
+                    remoteAddress: '1.2.3.4'
+                }
+            };
+            var provider = distribs.getByHostname("testhost.com").providers[0];
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+
+            var tokenizedUrl = velocix.generateTokenizedUrl(targetUrl, inboundToken, provider, clientRequest);
+
+            (tokenizedUrl == null).should.be.false;
+            (tokenizedUrl.query == null).should.be.false;
+            (tokenizedUrl.query.authToken == null).should.be.false;
+
+            var vxTokenParams = testUtil.validateAndExtractVelocixToken(tokenizedUrl.query.authToken, "secret1");
+            (vxTokenParams == null).should.be.false;
+            (vxTokenParams['c-ip'] == null).should.be.true;
+            vxTokenParams.expiry.should.equal('1478799175');
+            vxTokenParams.pathURI.should.equal('/content/*');
+            vxTokenParams['x:clientIP'].should.equal('1.2.3.4');
+
+        });
+
+        it('should generate a token that is bound to a specific IP', function () {
+            var targetUrl = url.parse('http://somehost.com/content/video.m3u8');
+            var inboundToken = {
+                isPresent: true,
+                endTime: 1478799175,
+                acl: '/content/*',
+                payload: {
+                    someKey: 'someValue'
+                },
+                ipAddress: "1.2.3.0/24"
+            };
+            var clientRequest = {
+                socket: {
+                    remoteAddress: '1.2.3.4'
+                }
+            };
+            var provider = distribs.getByHostname("testhost.com").providers[0];
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+
+            var tokenizedUrl = velocix.generateTokenizedUrl(targetUrl, inboundToken, provider, clientRequest);
+
+            (tokenizedUrl == null).should.be.false;
+            (tokenizedUrl.query == null).should.be.false;
+            (tokenizedUrl.query.authToken == null).should.be.false;
+
+            var vxTokenParams = testUtil.validateAndExtractVelocixToken(tokenizedUrl.query.authToken, "secret1");
+            (vxTokenParams == null).should.be.false;
+            vxTokenParams.expiry.should.equal('1478799175');
+            vxTokenParams.pathURI.should.equal('/content/*');
+            vxTokenParams['c-ip'].should.equal('1.2.3.0/24');
+            vxTokenParams['x:clientIP'].should.equal('1.2.3.4');
+
+        });
+
+        it('should set a default ACL and expiry if none is provided', function () {
+            var targetUrl = url.parse('http://somehost.com/content/blah/video.m3u8');
+            var inboundToken = {
+                isPresent: true
+            };
+            var clientRequest = {
+                socket: {
+                    remoteAddress: '1.2.3.4'
+                }
+            };
+            var provider = distribs.getByHostname("testhost.com").providers[0];
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+
+            var tokenizedUrl = velocix.generateTokenizedUrl(targetUrl, inboundToken, provider, clientRequest);
+
+            (tokenizedUrl == null).should.be.false;
+            (tokenizedUrl.query == null).should.be.false;
+            (tokenizedUrl.query.authToken == null).should.be.false;
+
+            var vxTokenParams = testUtil.validateAndExtractVelocixToken(tokenizedUrl.query.authToken, "secret1");
+            (vxTokenParams == null).should.be.false;
+            vxTokenParams.pathURI.should.equal('/content/blah/*');
+
+            var now = Math.round(Date.now()/1000) + 86400;
+            vxTokenParams.expiry.should.be.within(now - 1, now + 1);
+        });
+
+        it('should not tokenize the URL if there was no input token', function () {
+            var targetUrl = url.parse('http://somehost.com/content/blah/video.m3u8');
+            var clientRequest = {
+                socket: {
+                    remoteAddress: '1.2.3.4'
+                }
+            };
+            var provider = distribs.getByHostname("testhost.com").providers[0];
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+
+            // Empty inboundToken
+            var tokenizedUrl = velocix.generateTokenizedUrl(targetUrl, {}, provider, clientRequest);
+            (tokenizedUrl == null).should.be.false;
+            tokenizedUrl.should.equal(targetUrl);
+
+            // Not Present inboundToken
+            tokenizedUrl = velocix.generateTokenizedUrl(targetUrl, { isPresent: false }, provider, clientRequest);
+            (tokenizedUrl == null).should.be.false;
+            tokenizedUrl.should.equal(targetUrl);
+
+            // null inboundToken
+            tokenizedUrl = velocix.generateTokenizedUrl(targetUrl, null, provider, clientRequest);
+            (tokenizedUrl == null).should.be.false;
+            tokenizedUrl.should.equal(targetUrl);
+        });
+
+    });
+
+
+    describe('#extractInboundToken', function () {
+
+        it('should be able to detect a valid token from the URL and extract its parameters', function () {
+            // pathURI=/demo/*&fn=sha512&expiry=1478799175&x:counter=99123
+            // key=secret1
+            var token = 'cGF0aFVSST0vZGVtby8qJmZuPXNoYTUxMiZleHBpcnk9MTQ3ODc5OTE3NSZ4OmNvdW50ZXI9OTk'
+                      + 'xMjMsOTAxNGZiMmZlZWFmOTA0YzQ2MzBlNGZmODE3M2I4ZGQ1ODcxMmY3YTBhNjVkYTc4N2IxMj'
+                      + 'U5Yzc0Nzc5NzgzNDFkYjJmMGRiNmFjMjlkNmRkZjIyMjZhNTliOWUwMjBhOWMyNzQyODdmYWI1N'
+                      + 'TY0OGFmNmJhOGMzNTRmYWE0Yzk=';
+
+            var request = {
+                url: '/path/to/some/content.m3u8?authToken=' + token + '&somekey=somevalue',
+                headers: {
+                    host: 'testhost.com:8090'
+                }
+            };
+
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+            var token = velocix.extractInboundToken(request);
+
+            (token === null).should.be.false;
+            (token.ipAddress === undefined).should.be.true;
+            token.isPresent.should.be.true;
+            token.isValid.should.be.true;
+            token.endTime.should.equal(1478799175);
+            token.acl.should.equal("/demo/*")
+            token.payload.should.eql({ "x:counter": "99123" });
+            token.authParam.should.eql("authToken");
+        });
+
+        it('should handle tokens restricted to a certain IP address', function () {
+            // c-ip=1.2.3.4&pathURI=/demo/*&fn=sha512&expiry=1478799175&x:counter=99123
+            // key=secret1
+            var token = 'Yy1pcD0xLjIuMy40JnBhdGhVUkk9L2RlbW8vKiZmbj1zaGE1MTImZXhwaXJ5PTE0Nzg3OTkxNzUmeD'
+                      + 'pjb3VudGVyPTk5MTIzLGQzMDFjNzNhZDBkMjgxNzAyZWM5OWFlYmY2M2EzMGFkNjMxYTU3NzE3NDBm'
+                      + 'ZmE3MDk3OTM0YzNjMmZhNGZjNGM5NDAyYTU2OTBlN2JjMWZhYjNhMDg4N2VjNDc2YmZmZmQ5NmVjZW'
+                      + 'FhM2I5ZjM3ZjU2NzRlZDc1NTk3NjdiNjE4';
+
+            var request = {
+                url: '/path/to/some/content.m3u8?authToken=' + token,
+                headers: {
+                    host: 'testhost.com:8090'
+                }
+            };
+
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+            var token = velocix.extractInboundToken(request);
+
+            (token === null).should.be.false;
+            token.ipAddress.should.equal("1.2.3.4");
+            token.isPresent.should.be.true;
+            token.isValid.should.be.true;
+            token.endTime.should.equal(1478799175);
+            token.acl.should.equal("/demo/*")
+            token.payload.should.eql({ "x:counter": "99123" });
+            token.authParam.should.eql("authToken");
+        });
+
+        it('should convert full URLs in the PathURI field to be relative path ACLs', function () {
+            // pathURI=#http://somehost.com/demo/*&fn=sha512&expiry=1478799175&x:counter=99123
+            // key=secret1
+            var token = 'cGF0aFVSST0jaHR0cDovL3NvbWVob3N0LmNvbS9kZW1vLyomZm49c2hhNTEyJmV4cGlyeT0xNDc4Nz'
+                      + 'k5MTc1Jng6Y291bnRlcj05OTEyMywwMDljOWJiZGM1ODZlNGM5MTFkZjQzOWNmN2ZjOGJiYWM4NjFl'
+                      + 'NGQwNDRmNDUzNzFlNjY3YWQzYjUzOGYyYTljZDkwM2U3YTY4ODIyNjE3MmQ4ZjVmZjQ2ZDIyNGE1OD'
+                      + 'VhOGQ1YWU0ZWIxMWNkMzExMTY2MmFjYWQwMGI1ZTdkMg==';
+
+            var request = {
+                url: '/path/to/some/content.m3u8?authToken=' + token,
+                headers: {
+                    host: 'testhost.com'
+                }
+            };
+
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+            var token = velocix.extractInboundToken(request);
+
+            (token === null).should.be.false;
+            token.acl.should.equal("/demo/*")
+            token.isPresent.should.be.true;
+            token.isValid.should.be.true;
+            token.endTime.should.equal(1478799175);
+            token.payload.should.eql({ "x:counter": "99123" });
+            token.authParam.should.eql("authToken");
+        });
+
+        it('should be able to detect a valid token from a Cookie and extract its parameters', function () {
+            // pathURI=#http://somehost.com/demo/*&fn=sha512&expiry=1478799175&x:counter=99123
+            // key=secret1
+            var token = 'cGF0aFVSST0jaHR0cDovL3NvbWVob3N0LmNvbS9kZW1vLyomZm49c2hhNTEyJmV4cGlyeT0xNDc4Nz'
+                      + 'k5MTc1Jng6Y291bnRlcj05OTEyMywwMDljOWJiZGM1ODZlNGM5MTFkZjQzOWNmN2ZjOGJiYWM4NjFl'
+                      + 'NGQwNDRmNDUzNzFlNjY3YWQzYjUzOGYyYTljZDkwM2U3YTY4ODIyNjE3MmQ4ZjVmZjQ2ZDIyNGE1OD'
+                      + 'VhOGQ1YWU0ZWIxMWNkMzExMTY2MmFjYWQwMGI1ZTdkMg==';
+
+            var request = {
+                url: '/path/to/some/content.m3u8',
+                headers: {
+                    host: 'testhost.com',
+                    cookie: 'vxtoken=' + token + '; someOther=baaaa'
+                }
+            };
+
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+            var token = velocix.extractInboundToken(request);
+
+            (token === null).should.be.false;
+            token.acl.should.equal("/demo/*")
+            token.isPresent.should.be.true;
+            token.isValid.should.be.true;
+            token.endTime.should.equal(1478799175);
+            token.payload.should.eql({ "x:counter": "99123" });
+            token.authParam.should.eql("authToken");
+        });
+
+        it('should choose the URL token over a Cookie based token', function () {
+            // pathURI=#http://somehost.com/demo/*&fn=sha512&expiry=1478799175&x:counter=99123
+            // key=secret1
+            var urlToken = 'cGF0aFVSST0jaHR0cDovL3NvbWVob3N0LmNvbS9kZW1vLyomZm49c2hhNTEyJmV4cGlyeT0xNDc4Nz'
+                         + 'k5MTc1Jng6Y291bnRlcj05OTEyMywwMDljOWJiZGM1ODZlNGM5MTFkZjQzOWNmN2ZjOGJiYWM4NjFl'
+                         + 'NGQwNDRmNDUzNzFlNjY3YWQzYjUzOGYyYTljZDkwM2U3YTY4ODIyNjE3MmQ4ZjVmZjQ2ZDIyNGE1OD'
+                         + 'VhOGQ1YWU0ZWIxMWNkMzExMTY2MmFjYWQwMGI1ZTdkMg==';
+
+            // c-ip=1.2.3.4&pathURI=/demo/*&fn=sha512&expiry=1478799175&x:counter=99123
+            // key=secret1
+            var cookieToken = 'Yy1pcD0xLjIuMy40JnBhdGhVUkk9L2RlbW8vKiZmbj1zaGE1MTImZXhwaXJ5PTE0Nzg3OTkxNzUmeD'
+                            + 'pjb3VudGVyPTk5MTIzLGQzMDFjNzNhZDBkMjgxNzAyZWM5OWFlYmY2M2EzMGFkNjMxYTU3NzE3NDBm'
+                            + 'ZmE3MDk3OTM0YzNjMmZhNGZjNGM5NDAyYTU2OTBlN2JjMWZhYjNhMDg4N2VjNDc2YmZmZmQ5NmVjZW'
+                            + 'FhM2I5ZjM3ZjU2NzRlZDc1NTk3NjdiNjE4';
+
+            // So the cookieToken is IP restricted, but the URL token is not.
+
+            var request = {
+                url: '/path/to/some/content.m3u8?authToken=' + urlToken,
+                headers: {
+                    host: 'testhost.com',
+                    cookie: 'vxtoken=' + cookieToken + '; someOther=baaaa'
+                }
+            };
+
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+            var token = velocix.extractInboundToken(request);
+
+            (token === null).should.be.false;
+            (token.ipAddress == null).should.be.true;
+            token.acl.should.equal("/demo/*")
+            token.isPresent.should.be.true;
+            token.isValid.should.be.true;
+            token.endTime.should.equal(1478799175);
+            token.payload.should.eql({ "x:counter": "99123" });
+            token.authParam.should.eql("authToken");
+        });
+
+        it('should be able to detect tokens with invalid signatures', function () {
+            // pathURI=#http://somehost.com/demo/*&fn=sha512&expiry=1478799175&x:counter=99123
+            // key=secret999
+            var token = 'cGF0aFVSST0jaHR0cDovL3NvbWVob3N0LmNvbS9kZW1vLyomZm49c2hhNTEyJmV4cGlyeT0'
+                      + 'xNDc4Nzk5MTc1Jng6Y291bnRlcj05OTEyMywwMmJlN2Q4OTYxYzIxYmU5MWVkM2Y4YWNkMG'
+                      + 'IzZDUyNWEyYzdiYmEyOGI0ZmVkNzMzMzlhYzBiMzE4NzIwMmQ2YTZhMDc2MjQ0Nzk3MWRjM'
+                      + 'Tg2NjU4ZDhmYzYxZTM3ZjBiZmZhOTRhYTM4MDZhODU1YzRlMDgwMzljY2EzYWZhOQ==';
+
+            var request = {
+                url: '/path/to/some/content.m3u8?authToken=' + token,
+                headers: {
+                    host: 'testhost.com'
+                }
+            };
+
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+            var token = velocix.extractInboundToken(request);
+
+            (token === null).should.be.false;
+            token.isPresent.should.be.true;
+            token.isValid.should.be.false;
+
+            token.authParam.should.eql("authToken");
+            (token.endTime == null).should.be.true;
+            (token.payload == null).should.be.true;
+            (token.acl == null).should.be.true;
+        });
+
+        it('should be able handle garbled tokens', function () {
+            var token = 'weeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeesswdqw';
+
+            var request = {
+                url: '/path/to/some/content.m3u8?authToken=' + token,
+                headers: {
+                    host: 'testhost.com'
+                }
+            };
+
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+            var token = velocix.extractInboundToken(request);
+
+            (token === null).should.be.false;
+            token.isPresent.should.be.true;
+            token.isValid.should.be.false;
+
+            token.authParam.should.eql("authToken");
+            (token.endTime == null).should.be.true;
+            (token.payload == null).should.be.true;
+            (token.acl == null).should.be.true;
+        });
+
+        it('should be able to detect a request without a token', function () {
+
+            var request = {
+                url: '/path/to/some/content.m3u8',
+                headers: {
+                    host: 'testhost.com'
+                }
+            };
+
+            var velocix = new VelocixCDN('velocix', conf, distribs);
+            var token = velocix.extractInboundToken(request);
+
+            (token === null).should.be.false;
+            token.isPresent.should.be.false;
+        });
+    });
 
     describe('#isClientIpAllowed()', function () {
         it('should allow any ip if the whitelist is absent', function () {
@@ -141,8 +492,6 @@ describe('VelocixCDN', function () {
                 done();
             });
         });
-
-
 
         it('should send a redirection event containing the URL returned from Velocix', function (done) {
 
@@ -215,7 +564,7 @@ describe('VelocixCDN', function () {
 
                 velocix.selectSurrogate(mockRequest, function (error, requestUrl, targetUrl, location) {
                     should.not.exist(error);
-                    targetUrl.should.equal(mockVelocixResponse.http[0]['http.ip'][0] + '?myVerySecretWord=1234567890ABCDEF%3D');
+                    targetUrl.should.equal(mockVelocixResponse.http[0]['http.ip'][0] + '?authToken=1234567890ABCDEF%3D');
                     server.close();
                     done();
                 });
@@ -238,11 +587,10 @@ describe('VelocixCDN', function () {
                 mockRequest.url = '/path/to/some/content.m3u8?param1=val1&param2=val2';
                 mockRequest.headers['cookie'] = 'vxtoken=1234567890ABCDEF%3D; someOtherCookie=barf';
 
-                console.log(mockRequest);
                 velocix.selectSurrogate(mockRequest, function (error, requestUrl, targetUrl, location) {
                     should.not.exist(error);
                     requestUrl.should.equal('http://testhost.com/path/to/some/content.m3u8?param1=val1&param2=val2');
-                    targetUrl.should.equal(mockVelocixResponse.http[0]['http.ip'][0] + '&myVerySecretWord=1234567890ABCDEF%3D');
+                    targetUrl.should.equal(mockVelocixResponse.http[0]['http.ip'][0] + '&authToken=1234567890ABCDEF%3D');
                     server.close();
                     done();
                 });
@@ -266,7 +614,6 @@ describe('VelocixCDN', function () {
                 mockRequest.url = '/path/to/some/content.m3u8?param1=val1&param2=val2';
                 mockRequest.headers['cookie'] = 'vxtoken=1234567890ABCDEF%3D; someOtherCookie=barf';
 
-                console.log(mockRequest);
                 velocix.selectSurrogate(mockRequest, function (error, requestUrl, targetUrl, location) {
                     should.not.exist(error);
                     requestUrl.should.equal('http://www.test2.com/path/to/some/content.m3u8?param1=val1&param2=val2');
@@ -278,5 +625,3 @@ describe('VelocixCDN', function () {
         });
     });
 });
-
-

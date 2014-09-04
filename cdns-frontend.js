@@ -115,6 +115,7 @@ if (cluster.isMaster) {
         if (!err) {
             loadBalancer = new LoadBalancer(localConfig.loadBalancePeriod);
             cdnSelector = new CDNSelector(distribDao, cdnDao, loadBalancer);
+            tokenValidator = new TokenValidator();
 
             httpServer = new HttpServer(localConfig.port, cdnSelector, loggers.accesslog);
             httpServer.on('ready', function () {

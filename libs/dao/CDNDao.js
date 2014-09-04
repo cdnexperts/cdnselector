@@ -60,7 +60,7 @@ var dbDocs = {
     },
     "cdns:cdn:akamai": {
         "name": "Akamai",
-        "driver": "cdns:cdn:driver:generic",
+        "driver": "cdns:cdn:driver:akamai",
         "type": "cdns:cdn",
         "defaultOrder": 2,
         "active": true

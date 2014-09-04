@@ -1,7 +1,9 @@
 /*jslint node: true*/
 "use strict";
 var http = require('http'),
-    winston = require('winston');
+    winston = require('winston'),
+    crypto = require('crypto'),
+    querystring = require('querystring');
 
 module.exports = {
     runTestAgainstLocalServer: function (onRequest, readyCallback) {
@@ -26,5 +28,34 @@ module.exports = {
             global.DEBUG = true;
         }
         return this;
+    },
+    validateAndExtractVelocixToken: function(token, secret) {
+        var decodedToken = new Buffer(token, 'base64').toString('utf8'),
+            tokenParts = decodedToken.split(','),
+            params = querystring.parse(tokenParts[0]),
+            signature = tokenParts[1],
+            hashFn = params.fn || 'sha256',
+            hmac;
+
+        try {
+            hmac = crypto.createHmac(hashFn, new Buffer(secret, 'utf8'));
+        } catch (e) {
+            errorlog.warn('Received token with unknown hash function "' + hashFn + '"" : ' + token);
+            return null;
+        }
+        hmac.update(tokenParts[0], 'utf8');
+        if (signature === hmac.digest('hex')) {
+            return params;
+        }
+        return null;
+    },
+    extractAkamaiTokenParameters: function(token) {
+        var tokenParams = {};
+        var tokenKvPairs = token.split('~');
+        for (var i=0; i < tokenKvPairs.length; i+=1) {
+            var kvPair = tokenKvPairs[i].split('=');
+            tokenParams[kvPair[0]] = kvPair[1];
+        }
+        return tokenParams;
     }
 }

@@ -101,4 +101,18 @@ describe('AmazonCloudfront', function () {
 
         });
     });
+
+    describe('#extractInboundToken', function () {
+        it('should be able to detect a valid token and extract its parameters', function () {
+            should.fail();
+        });
+
+        it('should be able to detect an invalid token', function () {
+            should.fail();
+        });
+
+        it('should be able to detect a request without a token', function () {
+            should.fail();
+        });
+    });
 });
