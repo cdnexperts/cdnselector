@@ -9,8 +9,6 @@ var should = require('should'),
 
             return {
                 'testhost.com': {
-                    authParam: 'mySecretToken',
-                    authSecrets: ['secret1', 'secret2'],
                     providers: [
                         {
                             id: 'velocix',
@@ -68,51 +66,124 @@ describe('AmazonCloudfront', function () {
 
             var targetUrl = url.parse('http://d2tihyvz36rus8.cloudfront.net/demo/dtcp-sprint5/vxlive/index.m3u8?blah=999', true),
                 inboundTokenParams = {
-                    "pathURI": "#http://testhost.com/demo/dtcp-sprint5/vxlive/*",
-                    "fn": "sha512",
-                    "expiry": "1412121600",
+                    acl: "/demo/dtcp-sprint5/vxlive/*",
+                    endTime: 1412121600,
                     "x:counter": "99123",
-                    "c-ip": "115.164.93.0/24"
+                    ipAddress: "115.164.93.0/24"
                 },
                 signedUrl = cf.generateTokenizedUrl(targetUrl, inboundTokenParams, provider);
 
-            signedUrl.query['x:counter'].should.equal('99123');
-            signedUrl.query['Policy'].should.equal('eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cDovL2QydGloeXZ6MzZydXM4LmNsb3VkZnJvbnQubmV0L2RlbW8vZHRjcC1zcHJpbnQ1L3Z4bGl2ZS8qP2JsYWg9OTk5JnglM0Fjb3VudGVyPTk5MTIzIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNDEyMTIxNjAwfSwiSXBBZGRyZXNzIjp7IkFXUzpTb3VyY2VJcCI6IjExNS4xNjQuOTMuMC8yNCJ9fX1dfQ__');
-            signedUrl.query['Signature'].should.equal('QLy8wmrtSzfAzkvwetqEZB-1EVvUBpR5WA248T0ZbMUx6tv3gvK0u~pHlJR7EYYIleYSdtj029j4GpR4YMPZ5P5CteUC3CzERq7wRy3z7gcjyKLz8NRWth8NEYOgsDGimbumOa1ZrUtxBZYccYmVpPmy3AVBxFP-AMUdlJ0ZXg2FV8fqECPsrpkCv6iReQfalND~uQsriwPSO22m7qVYRtQUJEBjXxwtj29jxdaxbGS0QHmQMLfUdhvf0SW6LPvo1WigjgsqLjdXjKEM6Iwl66y4bqEsYS-khcAR6P9vMliANKEY1M1sN74K1k9AOmTxlTi5lpCCnxRbkvvBrLfWyw__');
+            should.exist(signedUrl);
+            signedUrl.query['Policy'].should.equal('eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cDovL2QydGloeXZ6MzZydXM4LmNsb3VkZnJvbnQubmV0L2RlbW8vZHRjcC1zcHJpbnQ1L3Z4bGl2ZS8qP2JsYWg9OTk5IiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNDEyMTIxNjAwfSwiSXBBZGRyZXNzIjp7IkFXUzpTb3VyY2VJcCI6IjExNS4xNjQuOTMuMC8yNCJ9fX1dfQ__');
+            signedUrl.query['Signature'].should.equal('WLctHNs6yARNM47RhCFa6bWw1-7BZxlOUiA2iEzqZ2R2gV3OeexuVmU6gE6wyV0NKszQscYI9v~RonZygJviydtsuSDiL7NbPS9Nb9MSrzuxrN719Z69rgy8NeWDLYT8tt1sSLUQZ97HPRNYDtR6kwlLX35Ni3uMGIyMDIV2sxLzKgt~wuJbf30-xzihuUgY3tCGCLNVQmGJ3sJoBmXnl8pqaXUp-3z4nXMpHBz0qsmeIAarJArzW5mCPfiZcbifnfKHmsWZWWtugamU-nefSkfsv52w0WoKNMKdXnZF9PMjGHmovtrTmwruWT6J-oY7LY0VZAgVjb0UbEARYS6LDA__');
             signedUrl.query['Key-Pair-Id'].should.equal('APKAIRTLI3CT3QO4UAJA');
 
         });
 
-        it('should generate a signed URL with a path (rather than a full URL) in the pathURI', function () {
-            var targetUrl = url.parse('http://d2tihyvz36rus8.cloudfront.net/demo/dtcp-sprint5/vxlive/index.m3u8?blah=999', true),
-                inboundTokenParams = {
-                    "pathURI": "/demo/dtcp-sprint5/vxlive/*",
-                    "fn": "sha512",
-                    "expiry": "1412121600",
-                    "x:counter": "99123",
-                    "c-ip": "115.164.93.0/24"
-                },
-                signedUrl = cf.generateTokenizedUrl(targetUrl, inboundTokenParams, provider);
-
-            signedUrl.query['x:counter'].should.equal('99123');
-            signedUrl.query['Policy'].should.equal('eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cDovL2QydGloeXZ6MzZydXM4LmNsb3VkZnJvbnQubmV0L2RlbW8vZHRjcC1zcHJpbnQ1L3Z4bGl2ZS8qP2JsYWg9OTk5JnglM0Fjb3VudGVyPTk5MTIzIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNDEyMTIxNjAwfSwiSXBBZGRyZXNzIjp7IkFXUzpTb3VyY2VJcCI6IjExNS4xNjQuOTMuMC8yNCJ9fX1dfQ__');
-            signedUrl.query['Signature'].should.equal('QLy8wmrtSzfAzkvwetqEZB-1EVvUBpR5WA248T0ZbMUx6tv3gvK0u~pHlJR7EYYIleYSdtj029j4GpR4YMPZ5P5CteUC3CzERq7wRy3z7gcjyKLz8NRWth8NEYOgsDGimbumOa1ZrUtxBZYccYmVpPmy3AVBxFP-AMUdlJ0ZXg2FV8fqECPsrpkCv6iReQfalND~uQsriwPSO22m7qVYRtQUJEBjXxwtj29jxdaxbGS0QHmQMLfUdhvf0SW6LPvo1WigjgsqLjdXjKEM6Iwl66y4bqEsYS-khcAR6P9vMliANKEY1M1sN74K1k9AOmTxlTi5lpCCnxRbkvvBrLfWyw__');
-            signedUrl.query['Key-Pair-Id'].should.equal('APKAIRTLI3CT3QO4UAJA');
-
-        });
     });
 
     describe('#extractInboundToken', function () {
         it('should be able to detect a valid token and extract its parameters', function () {
-            should.fail();
+            // {"Statement":[{"Resource":"http://d2tihyvz36rus8.cloudfront.net/demo/dtcp-sprint5/vxlive/*?blah=999&x%3Acounter=99123","Condition":{"DateLessThan":{"AWS:EpochTime":1412121600},"IpAddress":{"AWS:SourceIp":"115.164.93.0/24"}}}]}
+            var policy = 'eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cDovL2QydGloeXZ6MzZydXM4LmNsb3VkZnJvbnQubmV0L2RlbW8vZHRjcC1zcHJpbnQ1L3Z4bGl2ZS8qP2JsYWg9OTk5JnglM0Fjb3VudGVyPTk5MTIzIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNDEyMTIxNjAwfSwiSXBBZGRyZXNzIjp7IkFXUzpTb3VyY2VJcCI6IjExNS4xNjQuOTMuMC8yNCJ9fX1dfQ__';
+            var signature = 'QLy8wmrtSzfAzkvwetqEZB-1EVvUBpR5WA248T0ZbMUx6tv3gvK0u~pHlJR7EYYIleYSdtj029j4GpR4YMPZ5P5CteUC3CzERq7wRy3z7gcjyKLz8NRWth8NEYOgsDGimbumOa1ZrUtxBZYccYmVpPmy3AVBxFP-AMUdlJ0ZXg2FV8fqECPsrpkCv6iReQfalND~uQsriwPSO22m7qVYRtQUJEBjXxwtj29jxdaxbGS0QHmQMLfUdhvf0SW6LPvo1WigjgsqLjdXjKEM6Iwl66y4bqEsYS-khcAR6P9vMliANKEY1M1sN74K1k9AOmTxlTi5lpCCnxRbkvvBrLfWyw__';
+            var keyPairId = 'APKAIRTLI3CT3QO4UAJA';
+            var request = {
+                url: '/test-content/BigBuckBunny_640x360.m4v?Policy=' + policy
+                        + '&Signature=' + signature
+                        + '&Key-Pair-Id=' + keyPairId
+                        + '&somekey=somevalue',
+
+                headers: {
+                    host: 'testhost.com'
+                }
+            };
+            var inboundToken = cf.extractInboundToken(request);
+            inboundToken.isPresent.should.be.true;
+            inboundToken.isValid.should.be.true;
+            inboundToken.ipAddress.should.equal('115.164.93.0/24');
+            inboundToken.acl.should.equal('/demo/dtcp-sprint5/vxlive/*');
+            inboundToken.endTime.should.equal(1412121600);
+            inboundToken.authParams.should.eql(['Policy', 'Signature', 'Key-Pair-Id']);
+
         });
 
-        it('should be able to detect an invalid token', function () {
-            should.fail();
+        it('should be able to detect tokens with invalid signatures', function () {
+            // {"Statement":[{"Resource":"http://d2tihyvz36rus8.cloudfront.net/demo/dtcp-sprint5/vxlive/*?blah=999&x%3Acounter=99123","Condition":{"DateLessThan":{"AWS:EpochTime":1412121600},"IpAddress":{"AWS:SourceIp":"115.164.93.0/24"}}}]}
+            var policy = 'eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cDovL2QydGloeXZ6MzZydXM4LmNsb3VkZnJvbnQubmV0L2RlbW8vZHRjcC1zcHJpbnQ1L3Z4bGl2ZS8qP2JsYWg9OTk5JnglM0Fjb3VudGVyPTk5MTIzIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNDEyMTIxNjAwfSwiSXBBZGRyZXNzIjp7IkFXUzpTb3VyY2VJcCI6IjExNS4xNjQuOTMuMC8yNCJ9fX1dfQ__';
+            var signature = 'QLy8wmrtSzfAzkvwetqEZB-1FVvUBpR5WA248T0ZbMUx6tv3gvK0u~pHlJR7EYYIleYSdtj029j4GpR4YMPZ5P5CteUC3CzERq7wRy3z7gcjyKLz8NRWth8NEYOgsDGimbumOa1ZrUtxBZYccYmVpPmy3AVBxFP-AMUdlJ0ZXg2FV8fqECPsrpkCv6iReQfalND~uQsriwPSO22m7qVYRtQUJEBjXxwtj29jxdaxbGS0QHmQMLfUdhvf0SW6LPvo1WigjgsqLjdXjKEM6Iwl66y4bqEsYS-khcAR6P9vMliANKEY1M1sN74K1k9AOmTxlTi5lpCCnxRbkvvBrLfWyw__';
+            // Signature is incorrect
+            var keyPairId = 'APKAIRTLI3CT3QO4UAJA';
+            var request = {
+                url: '/test-content/BigBuckBunny_640x360.m4v?Policy=' + policy
+                        + '&Signature=' + signature
+                        + '&Key-Pair-Id=' + keyPairId
+                        + '&somekey=somevalue',
+
+                headers: {
+                    host: 'testhost.com'
+                }
+            };
+            var inboundToken = cf.extractInboundToken(request);
+            inboundToken.isPresent.should.be.true;
+            inboundToken.isValid.should.be.false;
+            inboundToken.authParams.should.eql(['Policy', 'Signature', 'Key-Pair-Id']);
+        });
+
+        it('should not accept tokens signed with a different key-pair-id', function () {
+            // {"Statement":[{"Resource":"http://d2tihyvz36rus8.cloudfront.net/demo/dtcp-sprint5/vxlive/*?blah=999&x%3Acounter=99123","Condition":{"DateLessThan":{"AWS:EpochTime":1412121600},"IpAddress":{"AWS:SourceIp":"115.164.93.0/24"}}}]}
+            var policy = 'eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cDovL2QydGloeXZ6MzZydXM4LmNsb3VkZnJvbnQubmV0L2RlbW8vZHRjcC1zcHJpbnQ1L3Z4bGl2ZS8qP2JsYWg9OTk5JnglM0Fjb3VudGVyPTk5MTIzIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNDEyMTIxNjAwfSwiSXBBZGRyZXNzIjp7IkFXUzpTb3VyY2VJcCI6IjExNS4xNjQuOTMuMC8yNCJ9fX1dfQ__';
+            var signature = 'QLy8wmrtSzfAzkvwetqEZB-1EVvUBpR5WA248T0ZbMUx6tv3gvK0u~pHlJR7EYYIleYSdtj029j4GpR4YMPZ5P5CteUC3CzERq7wRy3z7gcjyKLz8NRWth8NEYOgsDGimbumOa1ZrUtxBZYccYmVpPmy3AVBxFP-AMUdlJ0ZXg2FV8fqECPsrpkCv6iReQfalND~uQsriwPSO22m7qVYRtQUJEBjXxwtj29jxdaxbGS0QHmQMLfUdhvf0SW6LPvo1WigjgsqLjdXjKEM6Iwl66y4bqEsYS-khcAR6P9vMliANKEY1M1sN74K1k9AOmTxlTi5lpCCnxRbkvvBrLfWyw__';
+            var keyPairId = 'DifferentKeyPairID';
+            var request = {
+                url: '/test-content/BigBuckBunny_640x360.m4v?Policy=' + policy
+                        + '&Signature=' + signature
+                        + '&Key-Pair-Id=' + keyPairId
+                        + '&somekey=somevalue',
+
+                headers: {
+                    host: 'testhost.com'
+                }
+            };
+            var inboundToken = cf.extractInboundToken(request);
+            inboundToken.isPresent.should.be.true;
+            inboundToken.isValid.should.be.false;
+            inboundToken.authParams.should.eql(['Policy', 'Signature', 'Key-Pair-Id']);
+        });
+
+        it('should be able handle garbled tokens', function () {
+            // {"Statement":[{"Resource":"http://d2tihyvz36rus8.cloudfront.net/demo/dtcp-sprint5/vxlive/*?blah=999&x%3Acounter=99123","Condition":{"DateLessThan":{"AWS:EpochTime":1412121600},"IpAddress":{"AWS:SourceIp":"115.164.93.0/24"}}}]}
+            var policy = 'eyJTdGF0ZW1lbnQiOltWWWWWWWWWWWWWlc291cmNlIjoiaHR0cDovL2QydGloeXZ6MzZydXM4LmNsb3VkZnJvbnQubmV0L2RlbW8vZHRjcC1zcHJpbnQ1L3Z4bGl2ZS8qP2JsYWg9OTk5JnglM0Fjb3VudGVyPTk5MTIzIiwiQ29uZGl0aW9uIjp7IkRhdGVMZXNzVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNDEyMTIxNjAwfSwiSXBBZGRyZXNzIjp7IkFXUzpTb3VyY2VJcCI6IjExNS4xNjQuOTMuMC8yNCJ9fX1dfQ__';
+            var signature = 'QLy8wmrtSzfAzkvwetqEZB-1EVvUBpR5WA248T0ZbMUx6tv3gvK0u~pHlJR7EYYIleYSdtj029j4GpR4YMPZ5P5CteUC3CzERq7wRy3z7gcjyKLz8NRWth8NEYOgsDGimbumOa1ZrUtxBZYccYmVpPmy3AVBxFP-AMUdlJ0ZXg2FV8fqECPsrpkCv6iReQfalND~uQsriwPSO22m7qVYRtQUJEBjXxwtj29jxdaxbGS0QHmQMLfUdhvf0SW6LPvo1WigjgsqLjdXjKEM6Iwl66y4bqEsYS-khcAR6P9vMliANKEY1M1sN74K1k9AOmTxlTi5lpCCnxRbkvvBrLfWyw__';
+            var keyPairId = 'APKAIRTLI3CT3QO4UAJA';
+            var request = {
+                url: '/test-content/BigBuckBunny_640x360.m4v?Policy=' + policy
+                        + '&Signature=' + signature
+                        + '&Key-Pair-Id=' + keyPairId
+                        + '&somekey=somevalue',
+
+                headers: {
+                    host: 'testhost.com'
+                }
+            };
+            var inboundToken = cf.extractInboundToken(request);
+            inboundToken.isPresent.should.be.true;
+            inboundToken.isValid.should.be.false;
+            inboundToken.authParams.should.eql(['Policy', 'Signature', 'Key-Pair-Id']);
         });
 
         it('should be able to detect a request without a token', function () {
-            should.fail();
+            // {"Statement":[{"Resource":"http://d2tihyvz36rus8.cloudfront.net/demo/dtcp-sprint5/vxlive/*?blah=999&x%3Acounter=99123","Condition":{"DateLessThan":{"AWS:EpochTime":1412121600},"IpAddress":{"AWS:SourceIp":"115.164.93.0/24"}}}]}
+            var request = {
+                url: '/test-content/BigBuckBunny_640x360.m4v&somekey=somevalue',
+
+                headers: {
+                    host: 'testhost.com'
+                }
+            };
+            var inboundToken = cf.extractInboundToken(request);
+            inboundToken.isPresent.should.be.false;
+            (inboundToken.authParams == null).should.be.true;
         });
     });
 });

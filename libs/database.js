@@ -22,15 +22,13 @@ function createDatabase (nano, dbName, callback) {
     });
 }
 
-module.exports = function (dbUrl) {
+module.exports = function (dbUrl, dbName) {
     var connection;
 
     return {
         connect: function (callback) {
             // Since couchdb runs a stateless server, we do not really need to connect in advance.
             // However, this is where we ensure that the database exists, and if not, create it.
-            var dbName = 'cdns';
-
             if (connection) {
                 // We already have a 'connection'
                 process.nextTick(function () {
@@ -48,6 +46,10 @@ module.exports = function (dbUrl) {
                     }
                 });
             }
+        },
+        destroy: function (callback) {
+            var nano = require('nano')(dbUrl);
+            nano.db.destroy(dbName, callback);
         }
     }
 }

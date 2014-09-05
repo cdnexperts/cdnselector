@@ -45,4 +45,5 @@ describe('BaseCDN', function () {
             (provider === null).should.be.true
         });
     });
+
 });

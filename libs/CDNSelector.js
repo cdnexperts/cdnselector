@@ -62,7 +62,11 @@ function CDNSelector(distribDao, cdnDao, loadBalancer) {
 var proto = CDNSelector.prototype;
 
 proto.getAllCDNs =  function() {
-    return this.cdnInstances;
+    var cdnList = [];
+    for (var cdn in this.cdnInstances) {
+        cdnList.push(this.cdnInstances[cdn]);
+    }
+    return cdnList;
 };
 
 proto.selectNetworks = function (clientIp, hostname) {

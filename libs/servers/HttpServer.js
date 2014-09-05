@@ -108,7 +108,6 @@ function HttpServer(port, cdnSelector, requestLogger, tokenValidator) {
 		if (cdnSelection.cdns && cdnSelection.cdns.length > 0) {
 			// Search for a token in the inbound request
 			// All candidate CDNs will be asked
-
 			var inboundToken = tokenValidator.extractInboundToken(cdnSelector.getAllCDNs(), request);
 			if (inboundToken && inboundToken.isPresent && !inboundToken.isValid) {
 				code = 401;

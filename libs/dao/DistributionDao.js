@@ -47,11 +47,12 @@ var dbDocs = {
                    "alwaysUseForWhitelistedClients": true
                },
                "tokens": {
-                   "authParam": "authtoken",
+                   "authParam": "authToken",
                    "authSecrets": [
                      "secret1",
                      "secret2"
-                   ]
+                   ],
+                   "hashFn": "sha512"
                }
            },
            {
@@ -64,7 +65,7 @@ var dbDocs = {
                  "authSecrets": [
                      "238CA6248EC66F3068A88FB0AD09CC99"
                  ],
-                 "authSalt": "aabbcc",
+                 "hashSalt": "aabbcc",
                  "hashFn": "sha256"
               },
               "loadBalancer": {

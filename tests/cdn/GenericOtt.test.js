@@ -17,7 +17,7 @@ var should = require('should'),
                             active: true
                         },
                         {
-                            id: 'akamai',
+                            id: 'rackspace',
                             active: true,
                             hostname: '66c31a5db47d96799134-07d0dcfc87cc7f17a619f7b9e538157a.r2.cf3.rackcdn.com'
                         },
@@ -58,9 +58,9 @@ describe('GenericOttCDN', function () {
                     },
                     url: '/path/to/some/content.m3u8'
                 },
-                genericCDN = new GenericOttCDN('akamai', conf, distribs);
+                genericCDN = new GenericOttCDN('rackspace', conf, distribs);
 
-            genericCDN.selectSurrogate(mockRequest, function (error, requestUrl, targetUrl, location) {
+            genericCDN.selectSurrogate(mockRequest, null, function (error, requestUrl, targetUrl, location) {
                 should.not.exist(error);
                 should.exist(targetUrl);
                 requestUrl.should.equal('http://testhost.com/path/to/some/content.m3u8');
@@ -71,7 +71,7 @@ describe('GenericOttCDN', function () {
         });
 
         it('should provide an empty target URL if there is no mapping for this hostname', function (done) {
-            var genericCDN = new GenericOttCDN('akamai', conf, distribs),
+            var genericCDN = new GenericOttCDN('rackspace', conf, distribs),
                 failingRequest = {
                     headers: {
                         host: 'nonexistant.com'
@@ -82,7 +82,7 @@ describe('GenericOttCDN', function () {
                     url: '/path/to/some/content.m3u8'
                 };
 
-            genericCDN.selectSurrogate(failingRequest, function (error, requestUrl, targetUrl, location) {
+            genericCDN.selectSurrogate(failingRequest, null, function (error, requestUrl, targetUrl, location) {
                 should.not.exist(error);
                 requestUrl.should.equal('http://nonexistant.com/path/to/some/content.m3u8');
                 should.not.exist(targetUrl);
@@ -91,7 +91,7 @@ describe('GenericOttCDN', function () {
             });
         });
 
-        it('should remove the velocix token if present in the querystring', function (done) {
+        it('should remove the inbound token if present in the querystring', function (done) {
             var mockRequest = {
                     headers: {
                         host: 'testhost.com'
@@ -104,9 +104,17 @@ describe('GenericOttCDN', function () {
                         + '1JmV4cGlyeT0xMjkzMjgwNDk2Jng6Y291bnRlcj05OTEyMyxjN2FjZTA5YTVmOTU4NTM4NjFiYWM2Zm'
                         + 'M4MDFkZjI2MQ%3D%3D&someOtherGuff=uuuuu'
                 },
-                genericCDN = new GenericOttCDN('akamai', conf, distribs);
+                genericCDN = new GenericOttCDN('rackspace', conf, distribs),
+                inboundToken = {
+                    isPresent: true,
+                    isValid: true,
+                    authParams: ['mySecretToken'],
+                    cdn: {
+                        id: 'akamai'
+                    }
+                };
 
-            genericCDN.selectSurrogate(mockRequest, function (error, requestUrl, targetUrl, location) {
+            genericCDN.selectSurrogate(mockRequest, inboundToken, function (error, requestUrl, targetUrl, location) {
                 should.not.exist(error);
                 should.exist(targetUrl);
                 requestUrl.should.equal('http://testhost.com/path/to/some/content.m3u8?mySecretToken='
@@ -118,5 +126,46 @@ describe('GenericOttCDN', function () {
                 done();
             });
         });
+
+        it('should not remove the inbound token it is already in the format of the target CDN', function (done) {
+            var mockRequest = {
+                    headers: {
+                        host: 'testhost.com'
+                    },
+                    socket: {
+                        remoteAddress: '1.2.3.4'
+                    },
+                    url: '/path/to/some/content.m3u8?mySecretToken='
+                        + 'cHJvdG9oYXNoPUJUOjdmNDVhNTg2MWQxYTMwZjUyMTE4MzFiY2E5NDkzOGFhYTllNTA4MmUmZm49bWQ'
+                        + '1JmV4cGlyeT0xMjkzMjgwNDk2Jng6Y291bnRlcj05OTEyMyxjN2FjZTA5YTVmOTU4NTM4NjFiYWM2Zm'
+                        + 'M4MDFkZjI2MQ%3D%3D&someOtherGuff=uuuuu'
+                },
+                genericCDN = new GenericOttCDN('rackspace', conf, distribs),
+                inboundToken = {
+                    isPresent: true,
+                    isValid: true,
+                    authParams: ['mySecretToken'],
+                    cdn: {
+                        id: 'rackspace'
+                    }
+                };
+
+            genericCDN.selectSurrogate(mockRequest, inboundToken, function (error, requestUrl, targetUrl, location) {
+                should.not.exist(error);
+                should.exist(targetUrl);
+                requestUrl.should.equal('http://testhost.com/path/to/some/content.m3u8?mySecretToken='
+                    + 'cHJvdG9oYXNoPUJUOjdmNDVhNTg2MWQxYTMwZjUyMTE4MzFiY2E5NDkzOGFhYTllNTA4MmUmZm49bWQ'
+                    + '1JmV4cGlyeT0xMjkzMjgwNDk2Jng6Y291bnRlcj05OTEyMyxjN2FjZTA5YTVmOTU4NTM4NjFiYWM2Zm'
+                    + 'M4MDFkZjI2MQ%3D%3D&someOtherGuff=uuuuu');
+                targetUrl.should.equal('http://66c31a5db47d96799134-07d0dcfc87cc7f17a619f7b9e538157a.r2.cf3.rackcdn.com'
+                    + '/path/to/some/content.m3u8?mySecretToken='
+                    + 'cHJvdG9oYXNoPUJUOjdmNDVhNTg2MWQxYTMwZjUyMTE4MzFiY2E5NDkzOGFhYTllNTA4MmUmZm49bWQ'
+                    + '1JmV4cGlyeT0xMjkzMjgwNDk2Jng6Y291bnRlcj05OTEyMyxjN2FjZTA5YTVmOTU4NTM4NjFiYWM2Zm'
+                    + 'M4MDFkZjI2MQ%3D%3D&someOtherGuff=uuuuu');
+                should.not.exist(location);
+                done();
+            });
+        });
+
     });
 });

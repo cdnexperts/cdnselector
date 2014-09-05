@@ -174,7 +174,7 @@ describe('AkamaiCDN', function () {
             token.endTime.should.equal(1370627409);
             token.acl.should.equal('/i/test-content/BigBuckBunny_640x360.m4v/*')
             token.payload.should.eql({});
-            token.authParam.should.eql('hdnts');
+            token.authParams.should.eql(['hdnts']);
         });
 
         it('should handle salted tokens (and configurable hash algo)', function () {
@@ -198,7 +198,7 @@ describe('AkamaiCDN', function () {
             token.endTime.should.equal(1370627409);
             token.acl.should.equal('/i/test-content/BigBuckBunny_640x360.m4v/*')
             token.payload.should.eql({});
-            token.authParam.should.eql('hdnts');
+            token.authParams.should.eql(['hdnts']);
         });
 
 
@@ -221,7 +221,7 @@ describe('AkamaiCDN', function () {
             (token === null).should.be.false;
             token.isPresent.should.be.true;
             token.isValid.should.be.false;
-            token.authParam.should.eql('hdnts');
+            token.authParams.should.eql(['hdnts']);
         });
 
         it('should handle tokens with a payload', function () {
@@ -246,7 +246,7 @@ describe('AkamaiCDN', function () {
             token.payload.should.eql({
                 data: 'someOpaqueData'
             });
-            token.authParam.should.eql('hdnts');
+            token.authParams.should.eql(['hdnts']);
         });
 
         it('should be able handle garbled tokens', function () {
@@ -265,7 +265,7 @@ describe('AkamaiCDN', function () {
             (token === null).should.be.false;
             token.isPresent.should.be.true;
             token.isValid.should.be.false;
-            token.authParam.should.eql('hdnts');
+            token.authParams.should.eql(['hdnts']);
         });
 
         it('should be able to detect a request without a token', function () {

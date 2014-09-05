@@ -57,5 +57,18 @@ module.exports = {
             tokenParams[kvPair[0]] = kvPair[1];
         }
         return tokenParams;
+    },
+    readResponse: function(response, callback) {
+        var data = '';
+        response.on('data', function (chunk) {
+            data += chunk;
+        });
+
+        response.on('end', function () {
+            callback(data);
+        });
+    },
+    clone: function(obj) {
+        return JSON.parse(JSON.stringify(obj));
     }
 }

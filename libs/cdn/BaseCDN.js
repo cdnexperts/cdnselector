@@ -80,9 +80,8 @@ proto.selectSurrogate = function(clientRequest, inboundToken, callback) {
     var self = this,
         reqHost = clientRequest.headers.host.split(":")[0],
         reqUrl = 'http://' + reqHost + clientRequest.url,
-        provider = this.getProvider(reqUrl),
+        provider = this.getProvider(reqHost),
         queryString;
-
 
     if (!provider) {
         logger.info('Hostname ' + reqHost + ' does not have a distribution configured for this CDN');
@@ -94,15 +93,18 @@ proto.selectSurrogate = function(clientRequest, inboundToken, callback) {
 
         // If there is a inbound token on the querystring remove it
         var tokenIsFromSameCdn = false;
-        if (inboundToken) {
+        if (inboundToken && inboundToken.isPresent) {
             tokenIsFromSameCdn = inboundToken.cdn.id === this.id;
-            var tokenIsInUrl = inboundToken.authParam && targetUrl.query && targetUrl.query[inboundToken.authParam];
+            var tokenIsInUrl = inboundToken.authParams && targetUrl.query && inboundToken.authParams.length > 0;
+
 
             // If the inbound token is for this CDN, then its find to let it pass through rather than re-write it
             // Otherwise it should be removed
             if (!tokenIsFromSameCdn && tokenIsInUrl) {
                 // Remove the inbound token from the target URL
-                delete targetUrl.query[inboundToken.authParam];
+                for (var i = 0; i < inboundToken.authParams.length; i+=1) {
+                    delete targetUrl.query[inboundToken.authParams[i]];
+                }
                 delete targetUrl.search;
             }
         }
@@ -119,7 +121,7 @@ proto.selectSurrogate = function(clientRequest, inboundToken, callback) {
         logger.debug('BaseCDN targetUrl after rewrite:', targetUrl);
 
 
-        if (tokenIsFromSameCdn) {
+        if (inboundToken && inboundToken.isPresent && !tokenIsFromSameCdn) {
             // The inbound token has already been validated, but is from a different
             // CDN. We need to inject an equivalent token for the target CDN.
             logger.debug("Inbound request contained a valid token for a different CDN");
@@ -128,7 +130,7 @@ proto.selectSurrogate = function(clientRequest, inboundToken, callback) {
                             provider,
                             clientRequest);
         } else {
-            logger.debug("Inbound request did not contain a token");
+            logger.debug("No token manipulation needed (its absent or already good for the target CDN)");
         }
         callback(null, reqUrl, url.format(targetUrl), null, true);
     }
@@ -169,7 +171,6 @@ proto.isClientIpAllowed = function (ipAddress) {
 
 proto.extractInboundToken = function(request) {
     // To be overridden by a specific implementation
-    logger.warn("extractInboundToken not implemented for CDN " + this.id);
     return null;
 };
 

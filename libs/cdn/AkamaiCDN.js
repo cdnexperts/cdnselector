@@ -91,7 +91,8 @@ function AkamaiCDN(id, config, distribs) {
                 if (params['hmac'] === hmac.digest('hex')) {
                     return params;
                 } else {
-                    logger.warn("Signature incorrect for inbound Akamai token : " + token);
+                    logger.warn("Signature incorrect for inbound Akamai token",
+                            { tokenConf: tokenConf, hmacSource: hmacSource, token: token});
                 }
             }
         }
@@ -187,7 +188,7 @@ proto.extractInboundToken = function(request) {
     // If we found a token then parse it
     if (inboundTokenStr) {
         var inboundToken = this.parseAndValidateToken(inboundTokenStr, tokenConf);
-        inboundToken.authParam = tokenConf.authParam;
+        inboundToken.authParams = [tokenConf.authParam];
         return inboundToken;
     }
 

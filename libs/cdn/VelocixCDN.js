@@ -128,7 +128,7 @@ function VelocixCDN(id, config, distribs) {
 util.inherits(VelocixCDN, BaseCDN);
 var proto = VelocixCDN.prototype;
 
-proto.selectSurrogate = function (clientRequest, callback) {
+proto.selectSurrogate = function (clientRequest, inboundToken, callback) {
     var self = this,
         reqHost = clientRequest.headers.host.split(":")[0],
         reqUrlRaw = 'http://' + reqHost + clientRequest.url,
@@ -142,7 +142,7 @@ proto.selectSurrogate = function (clientRequest, callback) {
         // Server-side cache selection is not configured.
         // Use the BaseCDN implementation to ensure that this is treated like any other CDN.
         errorlog.debug('SSCS is disabled, so using  BaseCDN to handle request');
-        VelocixCDN.super_.prototype.selectSurrogate.call(this, clientRequest, function(err, requestUrl, targetUrl, location) {
+        VelocixCDN.super_.prototype.selectSurrogate.call(this, clientRequest, inboundToken, function(err, requestUrl, targetUrl, location) {
             if (targetUrl !== null) {
                 // Was there a Cookie-based token on the inbound request?
                 // If so, it should be moved to the querystring
@@ -233,8 +233,8 @@ proto.selectSurrogate = function (clientRequest, callback) {
             }
         });
     }).on('error', function (error) {
-        callback(error, reqUrlRaw, null, null, true);
         errorlog.warn('Error connecting to Velocix SSCSv2 service', requestOptions, error);
+        callback(error, reqUrlRaw, null, null, true);
     });
 
     return this;
@@ -272,7 +272,7 @@ proto.extractInboundToken = function(request) {
     // If we found a token then parse it
     if (inboundTokenStr) {
         var inboundToken = this.parseAndValidateToken(inboundTokenStr, tokenConf);
-        inboundToken.authParam = tokenConf.authParam;
+        inboundToken.authParams = [tokenConf.authParam];
         return inboundToken;
     }
 

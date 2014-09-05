@@ -29,9 +29,9 @@ var dbDocs = {
         "defaultOrder": 0,
         "routingService": {
             "proto": "sscsv2",
-            "host": "routing.zzz83s2.pub",
-            "port": 8003,
-            "path": "/sscsv2"
+            "host": "demo.cdnexperts.net",
+            "port": 80,
+            "path": "/demo/sscsv2"
         },
         "altoService": {
            "altoServiceUrl": "http://demo.cdnexperts.net/demo/cdns/alto/directory.altod",

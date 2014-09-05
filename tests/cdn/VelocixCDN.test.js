@@ -250,7 +250,7 @@ describe('VelocixCDN', function () {
             token.endTime.should.equal(1478799175);
             token.acl.should.equal("/demo/*")
             token.payload.should.eql({ "x:counter": "99123" });
-            token.authParam.should.eql("authToken");
+            token.authParams.should.eql(['authToken']);
         });
 
         it('should handle tokens restricted to a certain IP address', function () {
@@ -278,7 +278,7 @@ describe('VelocixCDN', function () {
             token.endTime.should.equal(1478799175);
             token.acl.should.equal("/demo/*")
             token.payload.should.eql({ "x:counter": "99123" });
-            token.authParam.should.eql("authToken");
+            token.authParams.should.eql(['authToken']);
         });
 
         it('should convert full URLs in the PathURI field to be relative path ACLs', function () {
@@ -305,7 +305,7 @@ describe('VelocixCDN', function () {
             token.isValid.should.be.true;
             token.endTime.should.equal(1478799175);
             token.payload.should.eql({ "x:counter": "99123" });
-            token.authParam.should.eql("authToken");
+            token.authParams.should.eql(['authToken']);
         });
 
         it('should be able to detect a valid token from a Cookie and extract its parameters', function () {
@@ -333,7 +333,7 @@ describe('VelocixCDN', function () {
             token.isValid.should.be.true;
             token.endTime.should.equal(1478799175);
             token.payload.should.eql({ "x:counter": "99123" });
-            token.authParam.should.eql("authToken");
+            token.authParams.should.eql(['authToken']);
         });
 
         it('should choose the URL token over a Cookie based token', function () {
@@ -371,7 +371,7 @@ describe('VelocixCDN', function () {
             token.isValid.should.be.true;
             token.endTime.should.equal(1478799175);
             token.payload.should.eql({ "x:counter": "99123" });
-            token.authParam.should.eql("authToken");
+            token.authParams.should.eql(['authToken']);
         });
 
         it('should be able to detect tokens with invalid signatures', function () {
@@ -396,7 +396,7 @@ describe('VelocixCDN', function () {
             token.isPresent.should.be.true;
             token.isValid.should.be.false;
 
-            token.authParam.should.eql("authToken");
+            token.authParams.should.eql(['authToken']);
             (token.endTime == null).should.be.true;
             (token.payload == null).should.be.true;
             (token.acl == null).should.be.true;
@@ -419,7 +419,7 @@ describe('VelocixCDN', function () {
             token.isPresent.should.be.true;
             token.isValid.should.be.false;
 
-            token.authParam.should.eql("authToken");
+            token.authParams.should.eql(['authToken']);
             (token.endTime == null).should.be.true;
             (token.payload == null).should.be.true;
             (token.acl == null).should.be.true;
@@ -484,7 +484,7 @@ describe('VelocixCDN', function () {
         it('should report error event when connection is refused', function (done) {
             var velocix = new VelocixCDN('velocix', conf, distribs);
 
-            velocix.selectSurrogate(mockRequest, function (error, requestUrl, targetUrl, location) {
+            velocix.selectSurrogate(mockRequest, null, function (error, requestUrl, targetUrl, location) {
                 error.code.should.equal('ECONNREFUSED');
                 requestUrl.should.equal('http://testhost.com/path/to/some/content.m3u8');
                 should.not.exist(targetUrl);
@@ -509,7 +509,7 @@ describe('VelocixCDN', function () {
                 var velocix = new VelocixCDN('velocix', conf, distribs);
 
 
-                velocix.selectSurrogate(mockRequest, function (error, requestUrl, targetUrl, location) {
+                velocix.selectSurrogate(mockRequest, null, function (error, requestUrl, targetUrl, location) {
                     should.not.exist(error);
                     requestUrl.should.equal('http://testhost.com/path/to/some/content.m3u8');
                     targetUrl.should.equal(mockVelocixResponse.http[0]['http.ip'][0]);
@@ -535,7 +535,7 @@ describe('VelocixCDN', function () {
                 var velocix = new VelocixCDN('velocix', conf, distribs);
 
 
-                velocix.selectSurrogate(mockRequest, function (error, requestUrl, targetUrl, location) {
+                velocix.selectSurrogate(mockRequest, null, function (error, requestUrl, targetUrl, location) {
                     error.toString().should.equal('Error: 500 HTTP status code in response from Velocix');
                     requestUrl.should.equal('http://testhost.com/path/to/some/content.m3u8');
                     should.not.exist(targetUrl);
@@ -562,7 +562,7 @@ describe('VelocixCDN', function () {
 
                 mockRequest.headers['cookie'] = 'vxtoken=1234567890ABCDEF%3D; someOtherCookie=barf';
 
-                velocix.selectSurrogate(mockRequest, function (error, requestUrl, targetUrl, location) {
+                velocix.selectSurrogate(mockRequest, null, function (error, requestUrl, targetUrl, location) {
                     should.not.exist(error);
                     targetUrl.should.equal(mockVelocixResponse.http[0]['http.ip'][0] + '?authToken=1234567890ABCDEF%3D');
                     server.close();
@@ -587,7 +587,7 @@ describe('VelocixCDN', function () {
                 mockRequest.url = '/path/to/some/content.m3u8?param1=val1&param2=val2';
                 mockRequest.headers['cookie'] = 'vxtoken=1234567890ABCDEF%3D; someOtherCookie=barf';
 
-                velocix.selectSurrogate(mockRequest, function (error, requestUrl, targetUrl, location) {
+                velocix.selectSurrogate(mockRequest, null, function (error, requestUrl, targetUrl, location) {
                     should.not.exist(error);
                     requestUrl.should.equal('http://testhost.com/path/to/some/content.m3u8?param1=val1&param2=val2');
                     targetUrl.should.equal(mockVelocixResponse.http[0]['http.ip'][0] + '&authToken=1234567890ABCDEF%3D');
@@ -614,7 +614,7 @@ describe('VelocixCDN', function () {
                 mockRequest.url = '/path/to/some/content.m3u8?param1=val1&param2=val2';
                 mockRequest.headers['cookie'] = 'vxtoken=1234567890ABCDEF%3D; someOtherCookie=barf';
 
-                velocix.selectSurrogate(mockRequest, function (error, requestUrl, targetUrl, location) {
+                velocix.selectSurrogate(mockRequest, null, function (error, requestUrl, targetUrl, location) {
                     should.not.exist(error);
                     requestUrl.should.equal('http://www.test2.com/path/to/some/content.m3u8?param1=val1&param2=val2');
                     targetUrl.should.equal(mockVelocixResponse.http[0]['http.ip'][0]);

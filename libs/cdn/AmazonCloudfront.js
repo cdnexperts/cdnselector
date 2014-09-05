@@ -11,24 +11,35 @@ var util = require('util'),
 function AmazonCloudfront(id, config, distribs) {
     AmazonCloudfront.super_.call(this, id, config, distribs);
 
+    function unescapeInvalidChars(str) {
+        return str.replace(/\-/g, '+').replace(/_/g,'=').replace(/~/g, '/');
+    };
+
+    function signPolicy(policyStr, key) {
+        var sign = crypto.createSign('RSA-SHA1');
+        sign.update(policyStr);
+        return sign.sign(key, 'base64');
+    };
+
     function getPolicyIfValid(policy, signature, keyPairId, signedUrlConf) {
         if (policy && signature && keyPairId
             && signedUrlConf && signedUrlConf.awsCfPrivateKey
             && signedUrlConf.awsCfKeyPairId) {
 
 
-            var policyStatement = this.unescapeInvalidChars(new Buffer(policy, 'base64').toString('utf8'));
-            var actualSignature = this.signPolicy(policyStatement, signedUrlConf.awsCfPrivateKey);
+            var policyStatement = new Buffer(unescapeInvalidChars(policy), 'base64').toString('utf8');
+            var suppliedSignature = unescapeInvalidChars(signature);
+            var computedSignature = signPolicy(policyStatement, signedUrlConf.awsCfPrivateKey);
 
-            if (actualSignature == signature && signedUrlConf.awsCfKeyPairId == keyPairId) {
+            if (computedSignature == suppliedSignature && signedUrlConf.awsCfKeyPairId == keyPairId) {
                 return JSON.parse(policyStatement);
             } else {
                 errorlog.warn("Failed to validate SignedURL",
                                 {
                                     policy: policy,
-                                    signature: signature,
+                                    suppliedSignature: suppliedSignature,
                                     keyPairId: keyPairId,
-                                    signedUrlConf: signedUrlConf
+                                    computedSignature: computedSignature
                                 }
                              );
                 return null;
@@ -37,32 +48,22 @@ function AmazonCloudfront(id, config, distribs) {
     };
 
 
-    this.sanitizePathUri = function (pathUri) {
-        // Remove any leading # signs
-        // Remove the hostname and scheme if present - we should be
-        // left only with a path
-        if (!pathUri) {
-            return '/*';
-        }
-        var urlObj = url.parse(pathUri.replace(/^#/, ''));
-        return urlObj.path;
-    };
-
-
     this.generatePolicy = function (targetUrl, inboundTokenParams) {
 
         // Build the policy statement
-        var sanitizedPathUri = this.sanitizePathUri(inboundTokenParams.pathURI),
-
-            resourceUrl = targetUrl.protocol
+        var acl = inboundTokenParams.acl;
+        if (!acl) {
+            acl = targetUrl.path;
+            acl = acl.replace(/\/[^\/]+$/, '/*');
+        }
+        var resourceUrl = targetUrl.protocol
                             + '//' + targetUrl.host
-                            + sanitizedPathUri
-                            + '?' + querystring.stringify(targetUrl.query),
+                            + acl
+                            + '?' + querystring.stringify(targetUrl.query);
 
-            expiry = parseInt(inboundTokenParams.expiry) || Math.round(Date.now()/1000) + 86400, // Defualt to 1 day
-            ipAddress = inboundTokenParams['c-ip'],
-
-            policyStatement = {
+        var expiry = parseInt(inboundTokenParams.endTime) || Math.round(Date.now()/1000) + 86400; // Defualt to 1 day
+        var ipAddress = inboundTokenParams.ipAddress;
+        var policyStatement = {
                 Statement: [
                     {
                         Resource: resourceUrl,
@@ -90,9 +91,6 @@ function AmazonCloudfront(id, config, distribs) {
         return str.replace(/\+/g, '-').replace(/=/g,'_').replace(/\//g, '~');
     };
 
-    this.unescapeInvalidChars = function (str) {
-        return str.replace(/\-/g, '+').replace(/_/g,'=').replace(/~/g, '/');
-    };
 
     this.signPolicy = function (policyStr, key) {
         var sign = crypto.createSign('RSA-SHA1');
@@ -100,21 +98,6 @@ function AmazonCloudfront(id, config, distribs) {
         return sign.sign(key, 'base64');
     };
 
-    this.copyCustomTokenParamsToQuerystring = function (inboundTokenParams, targetUrl) {
-        var param;
-        for (param in inboundTokenParams) {
-            if (param !== 'pathURI' &&
-                param !== 'protohash' &&
-                param !== 'expiry' &&
-                param !== 'fn' &&
-                param !== 'reuse' &&
-                param !== 'c-ip') {
-
-                targetUrl.query[param] = inboundTokenParams[param];
-            }
-        };
-        return targetUrl;
-    };
 
     this.parseAndValidateToken = function(policy, signature, keyPairId, signedUrlConf) {
         var policy = getPolicyIfValid(policy, signature, keyPairId, signedUrlConf);
@@ -134,18 +117,20 @@ function AmazonCloudfront(id, config, distribs) {
         };
 
         // Copy values from the policy into our internal token format
-        if (policyStatement && policyStatement.Statement && policyStatement.Statement[0]) {
-            var statement = policyStatement.Statement[0];
+        if (policy && policy.Statement && policy.Statement[0]) {
+            var statement = policy.Statement[0];
             if (statement.Condition) {
                 if (statement.Condition.IpAddress) {
-                    inboundToken.ipAddress = statement.Condition.IpAddress;
+                    inboundToken.ipAddress = statement.Condition.IpAddress['AWS:SourceIp'];
                 }
                 if (statement.Condition.DateLessThan && statement.Condition.DateLessThan['AWS:EpochTime']) {
-                    inboundToken.endTime = Condition.DateLessThan['AWS:EpochTime'];
+                    inboundToken.endTime = statement.Condition.DateLessThan['AWS:EpochTime'];
                 }
             }
             if (statement.Resource) {
-                inboundToken.acl = url.parse(statement.Resource).path;
+                var acl = url.parse(statement.Resource).path;
+                acl = acl.substring(0, acl.indexOf('?'));
+                inboundToken.acl = acl;
             }
         }
 
@@ -160,9 +145,6 @@ proto.generateTokenizedUrl = function (targetUrl, inboundTokenParams, provider, 
     var signedUrlConf = provider.signedUrl;
 
     if (signedUrlConf) {
-        // Copy any custom params from the token onto the query string before signing
-        this.copyCustomTokenParamsToQuerystring(inboundTokenParams, targetUrl);
-
         var policy = this.generatePolicy(targetUrl, inboundTokenParams),
             signature = this.signPolicy(policy, signedUrlConf.awsCfPrivateKey);
 
@@ -207,7 +189,9 @@ proto.extractInboundToken = function(request) {
     // If we found a token then parse it
     if (signature && policy && keyPairId) {
         var inboundToken = this.parseAndValidateToken(policy, signature, keyPairId, signedUrlConf);
-        inboundToken.authParam = tokenConf.authParam;
+        // Indicate which fields of the inbound request were the source of the token to make it easier
+        // to remove them later
+        inboundToken.authParams = ['Policy', 'Signature', 'Key-Pair-Id'];
         return inboundToken;
     }
 
