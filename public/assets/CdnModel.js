@@ -14,7 +14,7 @@ var CDN = Backbone.Model.extend({
         try {
             check(cdn.name,
                 'The CDN name must be letters and numbers only, '
-              + 'and between 2 and 50 characters long').isAlphanumeric().len(2,50);
+              + 'and between 2 and 50 characters long').is(/^[\w\d\- ]+$/).len(2,50);
 
             check(cdn.driver, 'You must specify a CDN type').notEmpty();
 

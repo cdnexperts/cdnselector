@@ -8,7 +8,8 @@ var logger = require('winston'),
     url = require('url'),
     querystring = require('querystring'),
     errorlog = require('winston'),
-    tokenDelimiter = '~';
+    tokenDelimiter = '~',
+    defaultAuthParam = 'hdnts';
 
 function AkamaiCDN(id, config, distribs) {
     AkamaiCDN.super_.call(this, id, config, distribs);
@@ -155,7 +156,7 @@ proto.generateTokenizedUrl = function (targetUrl, inboundToken, provider, client
         var token = this.generateToken(targetUrl, inboundToken, tokenConf);
 
         errorlog.debug('Minted Akamai token : ' + token);
-        targetUrl.query[tokenConf.authParam] = token;
+        targetUrl.query[tokenConf.authParam || defaultAuthParam] = token;
         delete targetUrl.search;
     }
     // Make sure that it is a URL object returned here rather than a string
@@ -181,8 +182,8 @@ proto.extractInboundToken = function(request) {
     }
 
     // Is the token on the querystring?
-    if (tokenConf.authParam && urlObj.query) {
-        inboundTokenStr = urlObj.query[tokenConf.authParam];
+    if (urlObj.query) {
+        inboundTokenStr = urlObj.query[tokenConf.authParam || defaultAuthParam];
     }
 
     // If we found a token then parse it

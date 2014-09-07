@@ -32,6 +32,12 @@ var ProviderEditView = Backbone.View.extend({
             selectionMode: this.model.get('selectionMode') || 'failover'
         }));
         this.$el.modal({ show:false });
+
+        if (provider.tokens) {
+            console.log($('#hashFn', this.$el).val());
+            console.log(provider.tokens);
+            $('#hashFn', this.$el).val(provider.tokens.hashFn || 'sha256');
+        }
     },
 
 
@@ -47,11 +53,29 @@ var ProviderEditView = Backbone.View.extend({
             provider.hostname = $('#providerHostname').val();
 
             // Set the CDN-specific token stuff
-            if (this.options.cdn && this.options.cdn.driver === 'cdns:cdn:driver:amazon') {
-                provider.signedUrl = {
-                    awsCfKeyPairId: $('#awsCfKeyPairId').val(),
-                    awsCfPrivateKey: $('#awsCfPrivateKey').val()
-                };
+            if (this.options.cdn) {
+                if (this.options.cdn.driver === 'cdns:cdn:driver:amazon') {
+                    provider.signedUrl = {
+                        awsCfKeyPairId: $('#awsCfKeyPairId').val(),
+                        awsCfPrivateKey: $('#awsCfPrivateKey').val()
+                    };
+                }
+                if (this.options.cdn.driver === 'cdns:cdn:driver:akamai' || this.options.cdn.driver === 'cdns:cdn:driver:velocix') {
+                    provider.tokens = {
+                        authParam: $('#authParam').val(),
+                        authSecrets: [],
+                        hashFn: $('#hashFn option:selected').val()
+                    };
+                    if ($('#authSecret1').val()) {
+                        provider.tokens.authSecrets.push($('#authSecret1').val());
+                    }
+                    if ($('#authSecret2').val()) {
+                        provider.tokens.authSecrets.push($('#authSecret2').val());
+                    }
+                    if ($('#hashSalt').val()) {
+                        provider.tokens.hashSalt = $('#authSecret2').val();
+                    }
+                }
             }
 
             if (this.model.get('selectionMode') === 'loadbalance') {

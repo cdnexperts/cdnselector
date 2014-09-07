@@ -13,7 +13,6 @@ module.exports = {
         for (var i = 0; i < cdnList.length; i += 1) {
             // Ask each candidate CDN whether they recognise an inbound token in the request
             var inboundToken = cdnList[i].extractInboundToken(request);
-
             if (inboundToken && inboundToken.isPresent) {
                 // We found a token, so stop searching
                 inboundToken.cdn = { id: cdnList[i].id };

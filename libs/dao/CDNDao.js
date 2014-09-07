@@ -22,7 +22,7 @@ var dbDocs = {
         }
     },
     "cdns:cdn:velocix": {
-        "name": "Velocix",
+        "name": "Velocix (using ALTO and SSCS features)",
         "driver": "cdns:cdn:driver:velocix",
         "active": true,
         "type": "cdns:cdn",
@@ -66,12 +66,23 @@ var dbDocs = {
         "active": true
     },
     "cdns:cdn:generic": {
-        "name": "Generic",
+        "name": "Rackspace",
         "driver": "cdns:cdn:driver:generic",
         "type": "cdns:cdn",
         "defaultOrder": 3,
         "active": true
-    }
+    },
+    "cdns:cdn:velocixott": {
+        "name": "Velocix (as an OTT CDN)",
+        "driver": "cdns:cdn:driver:velocix",
+        "active": true,
+        "type": "cdns:cdn",
+        "defaultOrder": 4,
+        "clientIpWhitelist": {
+            "manual": [],
+            "alto": []
+        }
+    },
 };
 
 function CDNDao(db) {

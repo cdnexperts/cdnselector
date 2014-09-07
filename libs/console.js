@@ -34,7 +34,6 @@ function startup(startupCompleteCallback) {
         require('./routes/index')(app);
         require('./routes/distributions')(app, database);
         require('./routes/cdns')(app, database);
-
         http.createServer(app).listen(app.get('port'), function(){
           console.log('Console server listening on port ' + app.get('port'));
           startupCompleteCallback();

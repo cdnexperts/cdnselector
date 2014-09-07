@@ -247,14 +247,15 @@ proto.extractInboundToken = function(request) {
     var inboundTokenStr,
         urlObj = url.parse(request.url, true),
         provider = this.getProvider(request),
-        tokenConf = provider.tokens;
+        tokenConf;
 
-    if (!provider.tokens) {
-        errorlog.debug("Skipped token detection for Velocix : its not configured");
+    if (!provider || !provider.tokens) {
+        errorlog.debug("Skipped token detection for " + this.id + " : its not configured");
         return {
             isPresent: false
         };
     }
+    tokenConf = provider.tokens;
 
     // Is the token on the querystring?
     if (tokenConf.authParam && urlObj.query) {

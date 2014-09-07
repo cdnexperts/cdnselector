@@ -118,6 +118,7 @@
                 <input class="input-xlarge focused" placeholder="e.g. d2tihyvz36rus8.cloudfront.net" id="providerHostname" type="text" value="<%= _.isString(provider.hostname) ? provider.hostname : '' %>" <%= cdn.routingService ? 'disabled' : '' %>/>
                 <p class="help-block">the hostname to direct traffic to on <%= cdn.name %>. You should be able to find this on the <%= cdn.name %> admin portal.</p>
               </div>
+
               <% if (selectionMode === 'loadbalance'
                     && cdn.clientIpWhitelist
                     && ((cdn.clientIpWhitelist.manual && cdn.clientIpWhitelist.manual.length > 0)
@@ -134,8 +135,9 @@
                   </div>
                 </div>
               <% } %>
+
               <% if (cdn.driver === 'cdns:cdn:driver:amazon') { %>
-                <h5>Signed URL generation</h5>
+                <h5>Signed URLs</h5>
                 <div class="control-group">
                       <label class="control-label" for="awsCfKeyPairId">Cloudfront Key Pair ID</label>
                       <div class="controls">
@@ -149,6 +151,78 @@
                     <textarea id="awsCfPrivateKey" class="input-small textarea" placeholder="-----BEGIN RSA PRIVATE KEY-----MIIEpAIBAAKCAQEAjejN1DZG/dwXte5bcKGE9VsOPgr9k9A1vdQUJPQXdgSA0jcpi/kVS3pBrjOIni1j22A9epklQVoMlXZi/sM+beBm8RUxfjBws7PchEx8khd36WONLlZRDAUA6a7YQ2OwadpBegGdIs..." style="width: 450px; height: 100px"><%= provider.signedUrl ? provider.signedUrl.awsCfPrivateKey : '' %></textarea>
                     <p class="help-block">the private key used to generate Signed URLs (copy and paste from the .pem file downloaded from the Amazon WebServices console).</p>
                   </div>
+                </div>
+              <% } %>
+              <% if (cdn.driver === 'cdns:cdn:driver:velocix') { %>
+                <h5>Token Authentication</h5>
+                <p>If you use Velocix token authentication with this distribution you must answer the following questions. The values should match exactly the corresponding configuration in the Velocix CDN.</p>
+                <div class="control-group">
+                      <label class="control-label" for="authParam">Auth Parameter name</label>
+                      <div class="controls">
+                        <input class="input-xlarge focused" id="authParam" type="text" placeholder="authtoken" value="<%= provider.tokens ? provider.tokens.authParam : '' %>"/>
+                        <p class="help-block">the URL querystring parameter that will contain a Velocix HMAC token</p>
+                      </div>
+                </div>
+                 <div class="control-group">
+                      <label class="control-label" for="authSecret1">Secret 1</label>
+                      <div class="controls">
+                        <input class="input-xlarge focused" id="authSecret1" type="text" placeholder="secret1" value="<%= provider.tokens && provider.tokens.authSecrets ? (provider.tokens.authSecrets[0] || '') : '' %>"/>
+                      </div>
+                </div>
+                 <div class="control-group">
+                      <label class="control-label" for="authSecret2">Secret 2</label>
+                      <div class="controls">
+                        <input class="input-xlarge focused" id="authSecret2" type="text" placeholder="secret2" value="<%= provider.tokens && provider.tokens.authSecrets ? (provider.tokens.authSecrets[1] || '') : '' %>"/>
+                        <p class="help-block">the authorization secrets are used to create and validate tokens. You only need one secret, but the second can be useful rotating secrets without invalidating any in-flight tokens.</p>
+                      </div>
+                </div>
+                <div class="control-group">
+                      <label class="control-label" for="name">Hash Function</label>
+                      <div class="controls">
+                        <select class="input-med focused" id="hashFn">
+                          <option value="sha256">sha256</option>
+                          <option value="sha512">sha512</option>
+                          <option value="md5">md5</option>
+                          <option value="sha1">sha1</option>
+                        </select>
+                        <p class="help-block">the hash function used to validate inbound token signatures, and to sign outbound tokens.</p>
+                      </div>
+                </div>
+              <% } %>
+              <% if (cdn.driver === 'cdns:cdn:driver:akamai') { %>
+                <h5>Akamai SecureHD Token Authentication</h5>
+                <p>If you use Akamai SecureHD token authentication with this distribution you must answer the following questions. The values should match exactly the corresponding configuration in the Akamai SecureHD policy editor.</p>
+                 <div class="control-group">
+                      <label class="control-label" for="authSecret1">Active Password</label>
+                      <div class="controls">
+                        <input class="input-xlarge focused" id="authSecret1" type="text" placeholder="secret1" value="<%= provider.tokens && provider.tokens.authSecrets ? (provider.tokens.authSecrets[0] || '') : '' %>"/>
+                      </div>
+                </div>
+                 <div class="control-group">
+                      <label class="control-label" for="authSecret2">Transition Password</label>
+                      <div class="controls">
+                        <input class="input-xlarge focused" id="authSecret2" type="text" placeholder="secret2" value="<%= provider.tokens && provider.tokens.authSecrets ? (provider.tokens.authSecrets[1] || '') : '' %>"/>
+                        <p class="help-block">the passwords are used to create and validate tokens, and must match those configured in your Akamai account. You only need one password at any time, but the second can be useful in order to rotate passwords without invalidating any in-flight tokens.</p>
+                      </div>
+                </div>
+                 <div class="control-group">
+                      <label class="control-label" for="hashSalt">Hash Salt</label>
+                      <div class="controls">
+                        <input class="input-xlarge focused" id="hashSalt" type="text" placeholder="hashSalt" value="<%= provider.tokens  ? provider.tokens.hashSalt : '' %>"/>
+                        <p class="help-block">cryptographic salt to strengthen the signature. This must match the value configured in your Akamai account.</p>
+                      </div>
+                </div>
+                <div class="control-group">
+                      <label class="control-label" for="name">Hash Function</label>
+                      <div class="controls">
+                        <select class="input-med focused" id="hashFn">
+                          <option value="sha256">sha256</option>
+                          <option value="sha512">sha512</option>
+                          <option value="md5">md5</option>
+                          <option value="sha1">sha1</option>
+                        </select>
+                        <p class="help-block">the hash function used to validate inbound token signatures, and to sign outbound tokens.</p>
+                      </div>
                 </div>
               <% } %>
             </div>
@@ -186,7 +260,6 @@
                           <div id="categoryTabs" class="span12">
                             <ul>
                               <li><a href="#cdn-provider-tab">CDN Providers</a></li>
-                              <li><a href="#token-auth-tab">Token Authentication</a></li>
                             </ul>
                             <div id="cdn-provider-tab">
                               <div class="control-group">
@@ -247,31 +320,6 @@
                                   <% } %>
                                 <% }); %>
                                 <div class="row-fluid ui-state-disabled"></div>
-                              </div>
-                            </div>
-                            <div id="token-auth-tab" class="row-fluid">
-                              <div class="span12">
-                                <p>If you use token authentication with this distribution you must answer the following questions. The values should match exactly the corresponding configuration in the Velocix CDN.</p>
-                                <div class="control-group">
-                                      <label class="control-label" for="authParam">Auth Parameter name</label>
-                                      <div class="controls">
-                                        <input class="input-xlarge focused" id="authParam" type="text" placeholder="authtoken" value="<%= authParam %>"/>
-                                        <p class="help-block">the URL querystring parameter that will contain a Velocix HMAC token</p>
-                                      </div>
-                                </div>
-                                 <div class="control-group">
-                                      <label class="control-label" for="authSecret1">Secret 1</label>
-                                      <div class="controls">
-                                        <input class="input-xlarge focused" id="authSecret1" type="text" placeholder="secret1" value="<%= authSecrets[0] %>"/>
-                                      </div>
-                                </div>
-                                 <div class="control-group">
-                                      <label class="control-label" for="authSecret2">Secret 2</label>
-                                      <div class="controls">
-                                        <input class="input-xlarge focused" id="authSecret2" type="text" placeholder="secret2" value="<%= authSecrets[1] %>"/>
-                                        <p class="help-block">the authorization secrets used to validate tokens, as configured in the Velocix Console.</p>
-                                      </div>
-                                </div>
                               </div>
                             </div>
                           </div>

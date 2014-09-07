@@ -85,7 +85,7 @@ proto.selectSurrogate = function(clientRequest, inboundToken, callback) {
 
     if (!provider) {
         logger.info('Hostname ' + reqHost + ' does not have a distribution configured for this CDN');
-        callback(null, reqUrl, null, null, true);
+        callback(null, reqUrl, null, null);
     } else {
         // Strip off the inbound token from the URL if present
         var targetUrl = url.parse(reqUrl, true);
@@ -115,7 +115,7 @@ proto.selectSurrogate = function(clientRequest, inboundToken, callback) {
             this.rewriteUrl(targetUrl, inboundToken, provider);
         } catch (e) {
             logger.warn('URL rewrite failed for this provider: ' + e);
-            callback(null, reqUrl, null, null, true);
+            callback(e, reqUrl, '', null);
             return;
         }
         logger.debug('BaseCDN targetUrl after rewrite:', targetUrl);
@@ -132,7 +132,7 @@ proto.selectSurrogate = function(clientRequest, inboundToken, callback) {
         } else {
             logger.debug("No token manipulation needed (its absent or already good for the target CDN)");
         }
-        callback(null, reqUrl, url.format(targetUrl), null, true);
+        callback(null, reqUrl, url.format(targetUrl), null);
     }
 };
 

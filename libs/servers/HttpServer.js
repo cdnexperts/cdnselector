@@ -39,7 +39,6 @@ function HttpServer(port, cdnSelector, requestLogger, tokenValidator) {
 			remotePort = request.connection.remotePort,
 			code;
 
-
 		cdn.selectSurrogate(request, inboundToken, function (err, requestUrl, targetUrl, location) {
 
 			if (err || !targetUrl) {

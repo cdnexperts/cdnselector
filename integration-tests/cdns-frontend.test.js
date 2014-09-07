@@ -2,11 +2,8 @@
 /*global describe, it */
 "use strict";
 
-process.env.CDNS_MANUAL_START = true;
-process.env.CDNS_WORKER_PROCESSES = 1;
-process.env.CDNS_LOG_LEVEL = 'error';
-process.env.CDNS_DB_NAME = 'cdns-integration-test';
-process.env.CDNS_PORT = 7777;
+//TODO modularize this
+require('./integration-test-env');
 
 var should = require('should'),
     async = require('async'),
@@ -1361,6 +1358,74 @@ describe('cdns-frontend', function () {
 
                         response.headers.location.should.equal(
                             'http://66c31a5db47d96799134-07d0dcfc87cc7f17a619f7b9e538157a.r2.cf3.rackcdn.com/i/test-content/BigBuckBunny_640x360.m4v/master.m3u8'
+                        );
+
+                        testUtils.readResponse(response, function (data) {
+                            data.should.be.empty;
+                            next();
+                        });
+                    });
+                }
+            ], function (err) {
+                should.not.exist(err);
+                done();
+            });
+        });
+    });
+    describe('[E: General Behaviour/Bug validation]', function () {
+      it('E1: Providers without hostnames should be skipped over', function (done) {
+            async.series([
+                function (next) {
+                    // Configure our distribution so that all traffic goes to Velocix.
+                    var distrib = testUtils.clone(sampleDistribution);
+                    distrib.providers = [
+                        {
+                           "id": "cdns:cdn:akamai",
+                           "driver": "cdns:cdn:driver:akamai",
+                           "active": true,
+                           "hostname": "emt-vh.akamaihd.net",
+                           "tokens": {
+                               "authParam": "hdnts",
+                               "authSecrets": [
+                                   "238CA6248EC66F3068A88FB0AD09CC99"
+                               ],
+                               "hashFn": "sha256"
+                           },
+                           "loadBalancer": {
+                               "targetLoadPercent": 0,
+                               "alwaysUseForWhitelistedClients": false
+                           }
+                       },
+                       {
+                           "id": "cdns:cdn:velocixott",
+                           "driver": "cdns:cdn:driver:velocix",
+                           "active": true,
+                           "loadBalancer": {
+                               "targetLoadPercent": 100,
+                               "alwaysUseForWhitelistedClients": true
+                           },
+                           "tokens": {
+                               "authParam": "authtoken",
+                               "authSecrets": [
+                                   "foo",
+                                   "bar"
+                               ],
+                               "hashFn": "sha256"
+                           }
+                       }
+                    ];
+                    updateDistribution('integration-test-distribution', distrib, next);
+                },
+                function (next) {
+                    var url = 'http://localhost:' + localConfig.port + '/i/test-content/BigBuckBunny_640x360.m4v/master.m3u8';
+
+                    http.get(url, function (response) {
+                        should.exist(response);
+                        response.statusCode.should.equal(302);
+
+                        // It should use Amazon, even though the load balancer doesn't like it.
+                        response.headers.location.should.equal(
+                            'http://emt-vh.akamaihd.net/i/test-content/BigBuckBunny_640x360.m4v/master.m3u8'
                         );
 
                         testUtils.readResponse(response, function (data) {

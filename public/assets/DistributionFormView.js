@@ -283,22 +283,10 @@ var DistributionFormView = Backbone.View.extend({
             distribution = {
                name: $('#name').val(),
                hostnames: [],
-               authSecrets: [],
+               //authSecrets: [],
                selectionMode: $('#selectionMode option:selected').val()
             };
 
-        if ($('#authParam').val()) {
-            distribution['authParam'] = $('#authParam').val();
-        }
-        if ($('#authSecret1').val() || $('#authSecret2').val()) {
-            distribution.authSecrets = [];
-            if ($('#authSecret1').val()) {
-                distribution.authSecrets.push($('#authSecret1').val());
-            }
-            if ($('#authSecret2').val()) {
-                distribution.authSecrets.push($('#authSecret2').val());
-            }
-        }
         if ($('#hostnames').val()) {
             $('#hostnames').val().trim().split(/[\n,]/).forEach(function(hostname) {
                 distribution.hostnames.push(hostname);

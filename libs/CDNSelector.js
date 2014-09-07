@@ -50,7 +50,6 @@ function CDNSelector(distribDao, cdnDao, loadBalancer) {
 
     // Remove drivers whenever a CDN is deleted
     cdnDao.on('deleted', function (cdnId) {
-        console.log('Removing ' + cdnId);
         delete self.cdnInstances[cdnId];
     });
 
