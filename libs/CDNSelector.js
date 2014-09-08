@@ -68,10 +68,12 @@ proto.getAllCDNs =  function() {
     return cdnList;
 };
 
-proto.selectNetworks = function (clientIp, hostname) {
+proto.selectNetworks = function (clientIp, hostname, stickyCdnHint) {
     var self = this,
         candidates = [],
-        options = {},
+        options = {
+            stickyCdnHint: stickyCdnHint
+        },
         homeCdn = null;
 
 

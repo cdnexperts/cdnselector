@@ -88,11 +88,20 @@ proto.balance = function (cdns, distrib, options) {
                 var percentTarget = provider.loadBalancer.targetLoadPercent;
                 sortOrder[provider.id] = percentTarget - percentActual;
 
+                // If the Client is within the whitelist for this CDN, and the provider
+                // has 'alwaysUseForWhitelistedClients' set then we should promote this
+                // to the top of the list
                 if (options
                     && options.whitelistAllowed
                     && options.whitelistAllowed[provider.id]
                     && provider.loadBalancer.alwaysUseForWhitelistedClients) {
 
+                    sortOrder[provider.id] += 200;
+                }
+
+                // The client might have requested a particular CDN to 'stick' to.
+                // If so, give this a higher score.
+                if (options && options.stickyCdnHint && provider.id === options.stickyCdnHint) {
                     sortOrder[provider.id] += 200;
                 }
 

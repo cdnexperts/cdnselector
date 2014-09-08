@@ -5,17 +5,34 @@ var http = require('http'),
 	url = require('url'),
 	util = require('util'),
     EventEmitter = require('events').EventEmitter,
-    errorlog = require('winston');
+    errorlog = require('winston'),
+    Cookies = require('cookies'),
+    localConfig = require('../localConfig');
 
 function HttpServer(port, cdnSelector, requestLogger, tokenValidator) {
 	var self = this;
 	this.port = port;
 
 
-	function sendRedirectionResponse(response, code, targetUrl) {
+	function sendRedirectionResponse(response, code, targetUrl, cdn) {
+
+		// Set a Cookie on the response so in the next request we know
+		// Which CDN was previouly used (stikyness). This is needed
+		// because Flash player always sends requests back to the CDN selector.
+		var urlPath = url.parse(targetUrl).path;
+		var cookiePath = urlPath.substring(0, urlPath.lastIndexOf('/'));
+
+		var expiryString = '';
+		if (localConfig.stickySessionTimeoutSeconds) {
+			var expires = new Date();
+			expires.setTime(expires.getTime() + (localConfig.stickySessionTimeoutSeconds * 1000));
+			expiryString = '; Expires=' + expires.toUTCString()
+		}
+
 		var headers = {
 			'Content-Type': 'text/plain',
-			'Location': targetUrl
+			'Location': targetUrl,
+			'Set-Cookie': 'CDN=' + cdn.id + '; Path=' + cookiePath + expiryString
 		};
 
 		response.writeHead(code, headers);
@@ -28,6 +45,15 @@ function HttpServer(port, cdnSelector, requestLogger, tokenValidator) {
 		};
 		response.writeHead(code, headers);
 		response.end(descr);
+	}
+
+	function sendCrossDomainResponse(response) {
+		response.writeHead(200, { 'Content-Type': 'text/xml' });
+		response.end('<?xml version="1.0"?><!DOCTYPE cross-domain-policy SYSTEM '
+			+ '"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd"><cross-domain-policy>'
+			+ '<allow-access-from domain="*"/><allow-http-request-headers-from domain="*" headers="*"/>'
+			+ '</cross-domain-policy>');
+		return;
 	}
 
 
@@ -72,7 +98,7 @@ function HttpServer(port, cdnSelector, requestLogger, tokenValidator) {
 			} else {
 				// The CDN provided a surrogate for us to redirect the client to
 				code = 302;
-				sendRedirectionResponse(response, code, targetUrl);
+				sendRedirectionResponse(response, code, targetUrl, cdn);
 				self.emit('redirection', cdn, distrib);
 
 				requestLogger.log(
@@ -94,15 +120,33 @@ function HttpServer(port, cdnSelector, requestLogger, tokenValidator) {
 
 	this.server = http.createServer(function (request, response) {
 
+		// To keep flash player happy we will directly answer requests for the crossdomain.xml file
+		// (it doesn't allow redirects on this)
+		if (request.url == '/crossdomain.xml') {
+			sendCrossDomainResponse(response);
+			return;
+		}
+
 		if (!request.connection.remoteAddress) {
 			errorlog.error("Undefined remote address on request");
 			response.writeHead(500);
 			response.end();
 			return;
 		}
+
 		var clientIp = request.connection.remoteAddress,
 			hostname = request.headers.host.split(":")[0],
-			cdnSelection = cdnSelector.selectNetworks(clientIp, hostname);
+			stickyCdnHint,
+			cdnSelection;
+
+		// The client might send a Cookie requesting to stick to a particular CDN
+		if (request.headers.cookie) {
+			stickyCdnHint = new Cookies(request, null).get('CDN');
+			errorlog.debug("Client requested to stick to " + stickyCdnHint);
+		}
+
+		// Ask the CDN Selector for a list of candidate CDNs
+		cdnSelection = cdnSelector.selectNetworks(clientIp, hostname, stickyCdnHint);
 
 		if (cdnSelection.cdns && cdnSelection.cdns.length > 0) {
 			// Search for a token in the inbound request

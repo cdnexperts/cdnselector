@@ -17,5 +17,6 @@ module.exports = {
     logDir: process.env.CDNS_LOG_DIR || 'log',
     logRotationInterval: process.env.CDNS_LOG_ROTATION_INTERVAL || 3600,
     loadBalancePeriod: process.env.CDNS_LOAD_BALANCE_PERIOD || 60000,
-    workers: process.env.CDNS_WORKER_PROCESSES || null
+    workers: process.env.CDNS_WORKER_PROCESSES || null,
+    stickySessionTimeoutSeconds: process.env.CDNS_STICKY_SESSION_TIMEOUT || 30
 };
