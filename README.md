@@ -1,15 +1,16 @@
 # CDN Selector
 
-CDN Selector allows you to optimize the online delivery of video and other content using multiple CDNs.
+CDN Selector allows you to seemlessly switch between multiple CDNs. It is primarily aimed at HTTP-based streaming video services, but should work for any type of service that uses a CDN.
 
-Policies can be defined for each service to allow:
+It supports:
 
-* CDN selection based on the client's network location (e.g, direct on-net clients to your in-house CDN, and all others to a global CDN provider such as Akamai)
-* Integration with CDN routing engines to provide the client with direct access to the most suitable CDN cache. This increases performance for the client by avoiding a DNS lookup or HTTP redirection via the routing engine.
-* Failover to a backup CDN in the event that the primary CDN is unavailable or too busy to serve. This can allow the capacity of your in-house CDN to be augmented by that of a global CDN in times of peak demand.
-* Real-time control over CDN selection - at the flick of a switch traffic can be directed to an alternative CDN. This can be used to ensure service continuity in the event of a CDN failure, or as a tool to aid migration to a new CDN provider.
-* Secured access to content using Token Authentication. Inbound requests can be authenticated to ensure that the content is being requested by an authorized user. CDN Selector automatically generates the appropriate token format for the target CDN.
-* Load Balancing traffic  across multiple CDNs (e.g, 50% traffic to CDN A, 30% to CDN B, and 20% to CDN C). This can also be used to keep content 'fresh' in your backup CDN by sending a small number of requests in the event of failover.
+* Load balancing - split your traffic between 2,3 or more CDNs. You decide how much traffic goes to each CDN.
+* Backup CDN warming - send a small amount of traffic to your backup CDN in order to keep your content cached at the edge.
+* Instant failover - switch traffic between CDNs instantly, in many cases without interuption to playback.
+* Authentication Token conversion - CDN selector will automatically validate and convert authentication tokens/Signed URLs. Support multiple CDNs without any changes to your client.
+* Routing based on the client's network - if you are an ISP you can use different CDNs for on-net and off-net customers. Whats more, CDN Selector can auto discover your network using an ALTO service.
+* Direct-to-Edge routing. CDN Selector can send clients directly to their best-choice CDN edge server. This is currently only supported on Velocix CDNs.
+
 
 
 Features that may appear in future releases include:
@@ -32,13 +33,19 @@ See the project wiki at : https://github.com/cdnexperts/cdnselector/wiki
 
 # Changelog
 
+## Release 0.5.0
+* CDNS now allows the initial request to be signed with a token from any of the supported CDNs (Akamai, Velocix, Amazon Cloudfront). The token will be automatically converted to the format needed for the target CDN.
+* Added support for Akamai tokens
+* Added 'stickyness' to the load balancer. This is to support Flash player, which sends requests for relative links in the playlist via CDNS.
+* Added integration test suite.
+
 ## Release 0.4.0
 * Load balancing requests across multiple CDNs
 * Improved admin GUI so it scales to more CDN providers (the previous design was limited by the width of the screen).
 * Password protection of the Admin GUI (defaults to admin/admin)
 
 ## Release 0.3.0
-* Made the project generic for open source release.
+* Initial open source release.
 * Split the application into 2: a front-end and a back-end process. ALTO fetching and the Admin GUI moved into the backend process.
 * The list of Operator's IP ranges is now expressed as an 'IP Whitelist', which is associated with each CDN.
 * Model updated to allow use case where there are multiple on-net CDNs, each with their own ALTO service and Server-Side request router.
