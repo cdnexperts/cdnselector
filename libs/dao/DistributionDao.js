@@ -59,7 +59,7 @@ var dbDocs = {
               "id": "cdns:cdn:akamai",
               "driver": "cdns:cdn:driver:akamai",
               "active": true,
-              "hostname": "emt-vh.akamaihd.net",
+              "hostname": "emt-vh.akamaihd-staging.net",
               "tokens": {
                  "authParam": "hdnts",
                  "authSecrets": [
