@@ -12,15 +12,15 @@ It supports:
 * Direct-to-Edge routing. CDN Selector can send clients directly to their best-choice CDN edge server. This is currently only supported on Velocix CDNs.
 
 
-##Which CDNs does it support?
+## Which CDNs does it support?
 The software has been tested against Akamai, Amazon Cloudfront, Rackspace CloudFiles and Velocix CDNs. It should also work with other CDNs, but some features such as authentication tokens will not be available.
 
-##Which video services does it work with?
+## Which video services does it work with?
 CDN Selector was designed for modern video streaming services such as Apple HLS, Adobe HDS and Microsoft Smooth Streaming. It should also work for progressive download, or in fact any service that uses HTTP to deliver content (video or otherwise).
 
 It does not work with Flash RTMP streams, or any other non-HTTP delivery protocols.
 
-##Future features
+## Future features
 Features that may appear in future releases include:
 
 * CDN selection based on the client's geographical location (e.g, direct USA based customers to one CDN, and European customers to another). This feature can also deny access to clients based on their location (i.e, GeoBlocking).
